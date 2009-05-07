@@ -1,5 +1,5 @@
-#ifndef AIKO_SEXP
-#define AIKO_SEXP
+#ifndef AikoSexp_h
+#define AikoSexp_h
 
 namespace Aiko {
 

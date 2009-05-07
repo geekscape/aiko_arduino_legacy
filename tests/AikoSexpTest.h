@@ -1,6 +1,5 @@
 #include <cxxtest/TestSuite.h>
-
-#include "sexp.h"
+#include <AikoSexp.h>
 
 using namespace Aiko;
 
