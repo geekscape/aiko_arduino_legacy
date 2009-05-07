@@ -28,8 +28,8 @@ namespace Aiko {
   
   class SexpArray : SexpToken {
   public:
-    SexpArray(unsigned char tokenBufferLength = 10);
-    SexpArray(SexpToken* tokenBuffer, unsigned char tokenBufferLength);
+    SexpArray(unsigned char maxLength = 10);
+    SexpArray(SexpToken* tokens, unsigned char maxLength);
     ~SexpArray();
     
     char* parse(char* head)                      { return SexpArray::parse(head, head + strlen(head), this); }
@@ -37,7 +37,7 @@ namespace Aiko {
     char* parse(char* head, char* tail)          { return SexpArray::parse(head, tail, this); }
     char* parse(SexpToken& token)                { return SexpArray::parse(token.head_, token.tail_, this); }
     
-    unsigned char tokenCount() { return tokenCount_; }
+    unsigned char length() { return length_; }
     SexpToken& operator[](unsigned int i) { return tokens_[i]; }
     
     friend class SexpToken;
@@ -46,10 +46,10 @@ namespace Aiko {
     static char* parse(char* head, char* tail, SexpArray* array);
     static char* skipWhitespace(char* s, char* tail);
 
-    unsigned char tokenBufferLength_;
+    unsigned char maxLength_;
     SexpToken *tokens_;
     unsigned char isMalloced_;
-    unsigned char tokenCount_;
+    unsigned char length_;
   };
 
 };

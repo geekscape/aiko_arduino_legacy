@@ -33,7 +33,7 @@ public:
         
         SexpArray array;
         char* s = array.parse(a, b);
-        TS_ASSERT_EQUALS(array.tokenCount(), 4);
+        TS_ASSERT_EQUALS(array.length(), 4);
         TS_ASSERT(array[0].isEqualTo("the"));
         TS_ASSERT(array[1].isEqualTo("quick"));
         TS_ASSERT(array[2].isEqualTo("brown"));
@@ -46,14 +46,14 @@ public:
         
         SexpArray array;
         array.parse(a);
-        TS_ASSERT_EQUALS(array.tokenCount(), 3);
+        TS_ASSERT_EQUALS(array.length(), 3);
         TS_ASSERT(array[0].isEqualTo("the"));
         TS_ASSERT(array[1].isArray());
         TS_ASSERT(array[2].isEqualTo("fox"));
         
         SexpArray subArray;
         subArray.parse(array[1]);
-        TS_ASSERT_EQUALS(subArray.tokenCount(), 2);
+        TS_ASSERT_EQUALS(subArray.length(), 2);
         TS_ASSERT(subArray[0].isEqualTo("quick"));
         TS_ASSERT(subArray[1].isEqualTo("brown"));
     }

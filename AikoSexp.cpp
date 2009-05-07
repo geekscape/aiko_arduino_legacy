@@ -37,15 +37,15 @@ namespace Aiko {
     return s;
   }
 
-  SexpArray::SexpArray(unsigned char tokenBufferLength) {
-    tokenBufferLength_ = tokenBufferLength;
-    tokens_ = static_cast<SexpToken*>(calloc(tokenBufferLength, sizeof(SexpToken)));
+  SexpArray::SexpArray(unsigned char maxLength) {
+    maxLength_  = maxLength;
+    tokens_     = static_cast<SexpToken*>(calloc(maxLength_, sizeof(SexpToken)));
     isMalloced_ = true;
   }
   
-  SexpArray::SexpArray(SexpToken* tokenBuffer, unsigned char tokenBufferLength) {
-    tokenBufferLength_ = tokenBufferLength;
-    tokens_ = tokenBuffer;
+  SexpArray::SexpArray(SexpToken* tokens, unsigned char maxLength) {
+    maxLength_  = maxLength;
+    tokens_     = tokens;
     isMalloced_ = false;
   }
     
@@ -64,10 +64,10 @@ namespace Aiko {
       s++;
       s = skipWhitespace(s, tail);
   
-      if(array) array->tokenCount_ = 0;
+      if(array) array->length_ = 0;
       while (s < tail && *s != ')') {
         SexpToken* token = 0;
-        if (array) token = &(array->tokens_[array->tokenCount_++]);
+        if (array) token = &(array->tokens_[array->length_++]);
         s = SexpToken::scan(s, tail, token);
         s = skipWhitespace(s, tail);
       }
