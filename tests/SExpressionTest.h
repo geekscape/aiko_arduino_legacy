@@ -1,5 +1,5 @@
 #include <cxxtest/TestSuite.h>
-#include <AikoSexp.h>
+#include <AikoSExpression.h>
 
 using namespace Aiko;
 
@@ -21,17 +21,17 @@ using namespace Aiko;
 
 
 
-class SexpTest : public CxxTest::TestSuite 
+class SExpressionTestSExpressionArray : public CxxTest::TestSuite 
 {
 public:
     
-    /* SexpArray tests */
+    /* SExpressionArray tests */
     
     void test_sexp_array_should_parse_an_expression_with_multiple_atoms() {
         char *a = "(the quick brown fox)";
         char *b = a + strlen(a);
         
-        SexpArray array;
+        SExpressionArray array;
         char* s = array.parse(a, b);
         TS_ASSERT_EQUALS(array.length(), 4);
         TS_ASSERT(array[0].isEqualTo("the"));
@@ -44,14 +44,14 @@ public:
     void test_sexp_array_should_parse_nested_expressions() {
         char *a = "(the (quick brown) fox)";
         
-        SexpArray array;
+        SExpressionArray array;
         array.parse(a);
         TS_ASSERT_EQUALS(array.length(), 3);
         TS_ASSERT(array[0].isEqualTo("the"));
         TS_ASSERT(array[1].isArray());
         TS_ASSERT(array[2].isEqualTo("fox"));
         
-        SexpArray subArray;
+        SExpressionArray subArray;
         subArray.parse(array[1]);
         TS_ASSERT_EQUALS(subArray.length(), 2);
         TS_ASSERT(subArray[0].isEqualTo("quick"));
@@ -59,16 +59,16 @@ public:
     }
     
     
-    /* SexpToken tests */
+    /* SExpression tests */
     
     void test_sexp_token_should_scan_a_token_terminated_by_end_of_string() {
         char *a = "testing";
         char *b = a + strlen(a);
 
-        SexpToken token;        
-        char *s = token.scan(a, b);
-        TS_ASSERT_EQUALS(token.head(), a);
-        TS_ASSERT_EQUALS(token.tail(), b);
+        SExpression expression;        
+        char *s = expression.scan(a, b);
+        TS_ASSERT_EQUALS(expression.head(), a);
+        TS_ASSERT_EQUALS(expression.tail(), b);
         TS_ASSERT_EQUALS(s, b);
     }
   
