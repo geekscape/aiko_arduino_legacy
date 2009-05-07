@@ -26,7 +26,7 @@ namespace Aiko {
     unsigned char isArray_;
   };
   
-  class SexpArray : SexpToken {
+  class SexpArray {
   public:
     SexpArray(unsigned char maxLength = 10);
     SexpArray(SexpToken* tokens, unsigned char maxLength);
@@ -46,6 +46,7 @@ namespace Aiko {
     static char* parse(char* head, char* tail, SexpArray* array);
     static char* skipWhitespace(char* s, char* tail);
 
+    char *head_, *tail_;
     unsigned char maxLength_;
     SexpToken *tokens_;
     unsigned char isMalloced_;
