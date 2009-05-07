@@ -40,7 +40,7 @@ namespace Aiko {
 
   private:
     static char* parse(char* head, char* tail, SexpArray* array);
-    static char* SexpArray::skipWhitespace(char* s, char* tail);
+    static char* skipWhitespace(char* s, char* tail);
 
     unsigned char tokenCount_;
     SexpToken tokens_[12];
