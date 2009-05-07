@@ -28,6 +28,10 @@ namespace Aiko {
   
   class SexpArray : SexpToken {
   public:
+    SexpArray(unsigned char tokenBufferLength = 10);
+    SexpArray(SexpToken* tokenBuffer, unsigned char tokenBufferLength);
+    ~SexpArray();
+    
     char* parse(char* head)                      { return SexpArray::parse(head, head + strlen(head), this); }
     char* parse(char* head, unsigned int length) { return SexpArray::parse(head, head + length, this); }
     char* parse(char* head, char* tail)          { return SexpArray::parse(head, tail, this); }
@@ -42,8 +46,10 @@ namespace Aiko {
     static char* parse(char* head, char* tail, SexpArray* array);
     static char* skipWhitespace(char* s, char* tail);
 
+    unsigned char tokenBufferLength_;
+    SexpToken *tokens_;
+    unsigned char isMalloced_;
     unsigned char tokenCount_;
-    SexpToken tokens_[12];
   };
 
 };

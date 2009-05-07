@@ -37,6 +37,22 @@ namespace Aiko {
     return s;
   }
 
+  SexpArray::SexpArray(unsigned char tokenBufferLength) {
+    tokenBufferLength_ = tokenBufferLength;
+    tokens_ = static_cast<SexpToken*>(calloc(tokenBufferLength, sizeof(SexpToken)));
+    isMalloced_ = true;
+  }
+  
+  SexpArray::SexpArray(SexpToken* tokenBuffer, unsigned char tokenBufferLength) {
+    tokenBufferLength_ = tokenBufferLength;
+    tokens_ = tokenBuffer;
+    isMalloced_ = false;
+  }
+    
+  SexpArray::~SexpArray() {
+    if (isMalloced_) free(tokens_);
+  }
+  
   char* SexpArray::parse(char* head, char* tail, SexpArray* array) {
     if (array) {
       array->head_ = head;
