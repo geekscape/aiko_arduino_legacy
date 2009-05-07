@@ -5,7 +5,7 @@ namespace Aiko {
 
   char* SExpression::scan(char* head, char* tail, SExpression* expression) {
     char* s = skipWhitespace(head, tail);
-    switch(*head) {
+    switch(*s) {
       case '(':
         s = scanArray(s, tail, expression);
         break;
@@ -61,12 +61,7 @@ namespace Aiko {
   
   char* SExpressionArray::parse(char* head, char* tail, SExpressionArray* array) {
     char* s = skipWhitespace(head, tail);
-    
-    if (array) {
-      array->head_ = s;
-      array->tail_ = tail;
-    }
-
+    if (array) array->head_ = s;
     if (s < tail && *s == '(') {
       s++;
   
@@ -78,6 +73,7 @@ namespace Aiko {
       }
   
       if (s < tail && *s == ')') {
+        if (array) array->tail_ = s;
         s = skipWhitespace(++s, tail);
         return s;
       }
