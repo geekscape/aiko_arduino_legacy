@@ -12,7 +12,7 @@ namespace Aiko {
     char* head() { return head_; }
     char* tail() { return tail_; }
     unsigned int size() { return tail_ - head_; }
-    unsigned char isEqualTo(char* s) { return size() == strlen(s) && strncmp(s, head_, size()) == 0; }
+    unsigned char isEqualTo(char* s);
     unsigned char isArray() { return isArray_; }
     
   protected:

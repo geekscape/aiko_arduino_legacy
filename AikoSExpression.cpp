@@ -16,6 +16,10 @@ namespace Aiko {
     s = skipWhitespace(s, tail);
     return s;
   }
+
+  unsigned char SExpression::isEqualTo(char* s) {
+    return size() == strlen(s) && strncmp(s, head_, size()) == 0;
+  }
   
   char* SExpression::scanRawString(char* head, char* tail, SExpression* expression) {
     char* s;
@@ -67,8 +71,7 @@ namespace Aiko {
   
       if(array) array->length_ = 0;
       while (s < tail && *s != ')') {
-        SExpression* expression = 0;
-        if (array) expression = &(array->expressions_[array->length_++]);
+        SExpression* expression = array ? &(array->expressions_[array->length_++]) : 0;
         s = SExpression::scan(s, tail, expression);
       }
   
@@ -81,5 +84,4 @@ namespace Aiko {
     return 0;
   }
 
-  
 };
