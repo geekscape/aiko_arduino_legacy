@@ -1,56 +1,41 @@
 #include "AikoEvents.h"
 #include <MsTimer2.h>
 
+/*
+ * TODO
+ *
+ * - Prevent registering too many handlers.
+ */
+ 
 namespace Aiko {
 
-  EventsSingleton Events;
+  EventManager Events;
   
-  static void fred(void) {
-    Events.timerHandler();
+  void eventTimerHandler(void) {
+    Events.tick();
   }
   
-  EventsSingleton::EventsSingleton() {
+  EventManager::EventManager() {
     handlerCount_ = 0;
-    hour_ = minute_ = second_ = millisecond_ = 0;
 
-    MsTimer2::set(1, fred);  // 1 millisecond interrupt rate
+    MsTimer2::set(1, eventTimerHandler);  // 1 millisecond interrupt rate
     MsTimer2::start();
   }
-  
-  void EventsSingleton::registerHandler(unsigned int interval, void (*handler)()) {
-    handlers_[handlerCount_].interval = interval;
-    handlers_[handlerCount_].handler  = handler;
-    handlers_[handlerCount_].trigger  = false;    
+
+  void EventManager::registerHandler(unsigned int interval, void (*handler)()) {
+    handlers_[handlerCount_].interval_ = interval;
+    handlers_[handlerCount_].handler_  = handler;
+    handlers_[handlerCount_].counter_  = 0;
+    handlers_[handlerCount_].trigger_  = false;    
     handlerCount_++;
   }
   
-  void EventsSingleton::runLoop() {
-    for(;;) {
-      for (int i = 0; i < handlerCount_; i++) {
-        if (handlers_[i].trigger) {
-          handlers_[i].trigger = false;
-          (*handlers_[i].handler)();
-        }
-      }
-    }
+  void EventManager::loop() {
+    for (int i = 0; i < handlerCount_; i++) handlers_[i].loop();
   }
-  
-  void EventsSingleton::timerHandler() {
-    if ((++ millisecond_) == 1000) {
-      millisecond_ = 0;
-      if ((++ second_) == 60) {
-        second_ = 0;
-        if ((++ minute_) == 60) {
-          minute_ = 0;
-          if ((++ hour_) == 99) hour_ = 0;  // Maximum: 99 hours, 59 minutes, 59 seconds
-        }
-      }
-    }
-    
-    for (int i = 0; i < handlerCount_; i++) {
-      if (millisecond_ % handlers_[i].interval == 0)
-        handlers_[i].trigger = true;
-    }
+
+  void EventManager::tick() {
+    for (int i = 0; i < handlerCount_; i++) handlers_[i].tick();
   }
 
 };
