@@ -21,6 +21,7 @@ void setup() {
   Events.registerHandler(100, count);
   Events.registerHandler(200, hello);
   Events.registerHandler(300, goodbye);
+  Events.start();
 }
 
 void loop() {

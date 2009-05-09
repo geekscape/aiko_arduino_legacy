@@ -5,3 +5,4 @@ test:
 	
 clean:
 	rm -f *.o tests/*.o tests/runner.cpp tests/runner
+	rm -rf applet

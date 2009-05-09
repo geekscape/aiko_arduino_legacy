@@ -28,6 +28,7 @@ namespace Aiko {
     public:
       EventManager();
       void registerHandler(unsigned int interval, void (*handler)());
+      void start();
       void loop();
 
     private:

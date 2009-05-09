@@ -17,11 +17,8 @@ namespace Aiko {
   
   EventManager::EventManager() {
     handlerCount_ = 0;
-
-    MsTimer2::set(1, eventTimerHandler);  // 1 millisecond interrupt rate
-    MsTimer2::start();
   }
-
+  
   void EventManager::registerHandler(unsigned int interval, void (*handler)()) {
     handlers_[handlerCount_].interval_ = interval;
     handlers_[handlerCount_].handler_  = handler;
@@ -30,6 +27,11 @@ namespace Aiko {
     handlerCount_++;
   }
   
+  void EventManager::start() {
+    MsTimer2::set(1, eventTimerHandler);
+    MsTimer2::start();
+  }
+
   void EventManager::loop() {
     for (int i = 0; i < handlerCount_; i++) handlers_[i].loop();
   }
