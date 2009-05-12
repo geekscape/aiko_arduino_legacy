@@ -57,7 +57,12 @@ namespace Aiko {
   }
 
   void EventManager::tick() {
-    for (int i = 0; i < handlerCount_; i++) handlers_[i].tick();
+    static unsigned long clock_ticks = 0;
+    clock_ticks += 16384;
+    while (clock_ticks > (F_CPU / 1000)) {
+      clock_ticks -= (F_CPU / 1000);
+      for (int i = 0; i < handlerCount_; i++) handlers_[i].tick();
+    }
   }
 
 };
