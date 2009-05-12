@@ -1,5 +1,4 @@
 #include <AikoEvents.h>
-#include <MsTimer2.h>
 
 using namespace Aiko;
 

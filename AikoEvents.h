@@ -30,11 +30,9 @@ namespace Aiko {
       void registerHandler(unsigned int interval, void (*handler)());
       void start();
       void loop();
-
-    private:
-      friend void eventTimerHandler(void);
       void tick();
       
+    private:
       int handlerCount_;
       EventHandler handlers_[10];
   };
