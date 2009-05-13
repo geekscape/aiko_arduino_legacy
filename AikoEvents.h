@@ -4,33 +4,24 @@
 namespace Aiko {
   
   struct EventHandler {
-    void loop() {
-      if (trigger_) {
-        trigger_ = false;
+    void loop(unsigned int elapsed) {
+      counter_ += elapsed;
+      if (counter_ >= interval_) {
+        counter_ -= interval_;
         (*handler_)();
-      }
-    }
-
-    void tick() {
-      if (++counter_ == interval_) {
-        trigger_ = true;
-        counter_ = 0; 
       }
     }
 
     unsigned int interval_;
     void (*handler_)();
     unsigned int counter_;
-    unsigned char trigger_;
   };
   
   class EventManager {
     public:
       EventManager();
       void registerHandler(unsigned int interval, void (*handler)());
-      void start();
       void loop();
-      void tick();
       
     private:
       int handlerCount_;
