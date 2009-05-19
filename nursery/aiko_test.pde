@@ -359,7 +359,7 @@ void lcdHandler(void) {
   lcdWriteString(".");
   lcdWriteNumber(temp_fraction);
   lcdWriteString("  ");
-  lcdWriteNumber(counter);
+  lcdWriteNumber(blinkCounter);
 }
 
 /* -------------------------------------------------------------------------- */
