@@ -7,7 +7,9 @@ namespace Aiko {
 
   class SExpression {
   public:
-    char* scan(char* head, char* tail) { return SExpression::scan(head, tail, this); }
+    char* scan(char* head)                      { return SExpression::scan(head, head + strlen(head), this); }
+    char* scan(char* head, unsigned int length) { return SExpression::scan(head, head+length, this); }
+    char* scan(char* head, char* tail)          { return SExpression::scan(head, tail, this); }
     
     char* head() { return head_; }
     char* tail() { return tail_; }
