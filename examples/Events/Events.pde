@@ -17,9 +17,9 @@ void goodbye() {
 
 void setup() {
   Serial.begin(9600);
-  Events.registerHandler(100, count);
-  Events.registerHandler(200, hello);
-  Events.registerHandler(300, goodbye);
+  Events.addHandler(100, count);
+  Events.addHandler(200, hello);
+  Events.addHandler(300, goodbye);
 }
 
 void loop() {

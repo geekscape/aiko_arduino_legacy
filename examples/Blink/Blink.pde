@@ -6,7 +6,7 @@ int ledPin = 13;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
-  Events.registerHandler(1000, blink);
+  Events.addHandler(1000, blink);
 }
 
 void blink() {
