@@ -1,5 +1,6 @@
 addHandler
 ==========
+
 The Events::addHandler method allows your application to specify a
 function to be invoked at a defined interval. It should be called with
 the function name followed by the required interval in milliseconds. For
