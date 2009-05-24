@@ -1,3 +1,5 @@
+addHandler
+==========
 The Events::addHandler method allows your application to specify a
 function to be invoked at a defined interval. It should be called with
 the function name followed by the required interval in milliseconds. For
@@ -16,7 +18,7 @@ For example:
  Events.addHandler (readHumidity, 5000);
  Events.addHandler (logData, 1000);
 
- will execute the readTemperature() and logData() functions in that
- order every second, but every 5th second the readHumidity() function
- will be called after readTemperature() but before logData(). This
- ensures the execution order of functions is always predictable.
+will execute the readTemperature() and logData() functions in that
+order every second, but every 5th second the readHumidity() function
+will be called after readTemperature() but before logData(). This
+ensures the execution order of functions is always predictable.
