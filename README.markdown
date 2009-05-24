@@ -42,5 +42,5 @@ Credits
 Written by Andy Gelme and Pete Yandell.
 
 Copyright (C) 2009 by Geekscape Pty. Ltd.
-Copyright (C) 2009 by Pete Yandel.
+Copyright (C) 2009 by Pete Yandell.
 Released under the GPLv3 license (dual-licensed).
