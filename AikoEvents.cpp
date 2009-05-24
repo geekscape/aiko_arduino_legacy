@@ -5,7 +5,6 @@
  * TODO
  *
  * - Prevent registering too many handlers.
- * - Change registerHandler to addHandler and swap the arguments.
  * - Add a removeHandler method.
  */
  
