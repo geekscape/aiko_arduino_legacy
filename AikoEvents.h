@@ -20,7 +20,7 @@ namespace Aiko {
   class EventManager {
     public:
       EventManager();
-      void addHandler(unsigned int interval, void (*handler)());
+      void addHandler(void (*handler)(), unsigned int interval);
       void loop();
       
     private:

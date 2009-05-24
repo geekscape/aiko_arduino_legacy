@@ -136,13 +136,13 @@ using namespace Aiko;
 void setup() {
   Serial.begin(115200);
 
-  Events.addHandler(  10, serialHandler);
-  Events.addHandler( 100, ledHandler);
-  Events.addHandler( 500, lcdHandler);
-  Events.addHandler(1000, blinkHandler);
-  Events.addHandler(1000, clockHandler);
-  Events.addHandler(1000, lightSensorHandler);
-  Events.addHandler(1000, temperatureSensorHandler);
+  Events.addHandler(serialHandler,              10);
+  Events.addHandler(ledHandler,                100);
+  Events.addHandler(lcdHandler,                500);
+  Events.addHandler(blinkHandler,             1000);
+  Events.addHandler(clockHandler,             1000);
+  Events.addHandler(lightSensorHandler,       1000);
+  Events.addHandler(temperatureSensorHandler, 1000);
 }
 
 void loop() {

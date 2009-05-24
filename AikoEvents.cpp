@@ -17,7 +17,7 @@ namespace Aiko {
     handlerCount_ = 0;
   }
   
-  void EventManager::addHandler(unsigned int interval, void (*handler)()) {
+  void EventManager::addHandler(void (*handler)(), unsigned int interval) {
     handlers_[handlerCount_].interval_ = interval;
     handlers_[handlerCount_].handler_  = handler;
     handlers_[handlerCount_].counter_  = 0; 
