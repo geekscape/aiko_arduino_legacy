@@ -15,7 +15,7 @@ Aiko allows you to write event-driven code:
 
     void setup() {
       pinMode(ledPin, OUTPUT);
-      Events.registerHandler(1000, blink);  // Every 1,000 ms
+      Events.addHandler(blink, 1000);  // Every 1,000 ms
     }
 
     void loop() {
@@ -31,14 +31,31 @@ By writing individual device drivers as event-driven functions, means that
 it is simpler to create device specific modules that can be shared with
 others and easier to then integrate them (with less code changes).
 
+
 Installation
 ============
 
-FAQ
-===
+Change into your Arduino libraries folder and use git to clone the project.
 
-Credits
-=======
+On a Mac this looks like:
+
+    cd /Applications/arduino-0015/hardware/libraries
+    git clone git://github.com/geekscape/Aiko.git
+
+On Linux, this will directory will be wherever you install your Arduino
+software.
+
+
+Components
+==========
+
+
+Community
+=========
+
+Report bugs at http://github.com/geekscape/Aiko/issues
+
+
 Written by Andy Gelme and Pete Yandell.
 
 Copyright (C) 2009 by Geekscape Pty. Ltd.
