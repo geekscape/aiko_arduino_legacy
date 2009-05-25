@@ -30,7 +30,7 @@ void setup() {
   pinMode(firstLedPin, OUTPUT);
   pinMode(secondLedPin, OUTPUT);
   Events.addHandler(blinkFirstLed, 1000);  // Every 1000ms
-  Events.addHandler(blinkSecondLed, 700);  // Every 1000ms
+  Events.addHandler(blinkSecondLed, 700);  // Every 700ms
 }
 
 void loop() {
