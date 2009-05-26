@@ -65,8 +65,9 @@ Community
 
 Report bugs on our [GitHub bug tracker](http://github.com/geekscape/Aiko/issues).
 
-Written by Andy Gelme and Pete Yandell.
+Written by Andy Gelme, Jon Oxer, and Pete Yandell.
 
 Copyright (C) 2009 by Geekscape Pty. Ltd.
+Copyright (C) 2009 by Jon Oxer.
 Copyright (C) 2009 by Pete Yandell.
 Released under the GPLv3 license (dual-licensed).
