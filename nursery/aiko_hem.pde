@@ -6,9 +6,19 @@
  * License: GPLv3. http://geekscape.org/static/arduino_license.html
  * Version: 0.0
  *
+ * Prototype Home Energy Monitor API client.
+ * Currently requires a Residential Gateway (indirect mode only).
+ * See http://smartenergygroups.com/faq
+ *
  * To Do
  * ~~~~~
  * - Complete serialHandler() communications.
+ * - Implement: addCommandHandler() and removeCommandHandler().
+ * - Implement: (display-title STRING) --> LCD position (0,0)
+ * - Implement: (device-update NAME VALUE UNIT)
+ * - Implement: (NAME= VALUE)
+ * - Implement: (profile)
+ * - Improve error handling.
  */
 
 #include <AikoEvents.h>
@@ -30,6 +40,18 @@ using namespace Aiko;
 #define PIN_RELAY          11 // PWM output (timer 2)
 #define PIN_ONE_WIRE       12 // OneWire or CANBus
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
+
+void (*commandHandlers[])() = {
+  resetClockCommand
+};
+
+char* commands[] = {
+  "reset-clock"
+};
+
+int commandCount = sizeof(commands) / sizeof(*commands);
+
+int parametersCount[] = { 0 };
 
 void setup() {
   Serial.begin(115200);
@@ -78,6 +100,10 @@ void clockHandler() {
       if ((++ hour) == 99) hour = 0;  // Max: 99 hours, 59 minutes, 59 seconds
     }
   }
+}
+
+void resetClockCommand() {
+  second = minute = hour = 0;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -357,13 +383,13 @@ void lcdHandler(void) {
   }
 
   lcdPosition(0, 0);
-  if (hour < 9) lcdWriteString("0");
+  if (hour < 10) lcdWriteString("0");
   lcdWriteNumber((int) hour);
   lcdWriteString(":");
-  if (minute < 9) lcdWriteString("0");
+  if (minute < 10) lcdWriteString("0");
   lcdWriteNumber((int) minute);
   lcdWriteString(":");
-  if (second < 9) lcdWriteString("0");
+  if (second < 10) lcdWriteString("0");
   lcdWriteNumber((int) second);
 
   lcdPosition(1, 0);
@@ -374,6 +400,7 @@ void lcdHandler(void) {
   lcdPosition(1, 9);
   lcdWriteNumber(temperature_whole);
   lcdWriteString(".");
+  if (temperature_fraction < 10) lcdWriteString("0");
   lcdWriteNumber(temperature_fraction);
   lcdWriteString(" C  ");
 }
@@ -412,7 +439,7 @@ void serialHandler() {
       char ch = Serial.read();
 
       if (ch == ';') {
-//      Serial.println("(read jackpot)");
+        (commandHandlers[0])();  // execute command
         length = 0;
       }
       else {
