@@ -49,15 +49,21 @@ repository by clicking the "download" link at:
     http://github.com/geekscape/Aiko/tree/master
 
 
-Components
-==========
+Modules
+=======
+
+- **Events** - Schedule regular callbacks so you can easily deal with
+  a bunch of devices connected to your Arduino.
+- **SExpression** - Parse simple SExpressions. Think of this as the
+  Arduino equivalent of JSON.
+
+See the corresponding files in the docs directory for more info on each module.
 
 
 Community
 =========
 
-Report bugs at http://github.com/geekscape/Aiko/issues
-
+Report bugs on our [GitHub bug tracker](http://github.com/geekscape/Aiko/issues).
 
 Written by Andy Gelme and Pete Yandell.
 
