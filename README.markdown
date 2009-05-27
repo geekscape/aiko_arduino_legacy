@@ -14,7 +14,7 @@ Aiko allows you to write event-driven code:
 
     void setup() {
       pinMode(ledPin, OUTPUT);
-      Events.addHandler(blink, 1000);  // Every 1000 ms
+      Events.addHandler(blink, 1000);  // Every 1000ms
     }
 
     void loop() {
@@ -22,7 +22,9 @@ Aiko allows you to write event-driven code:
     }
 
     void blink() {
-      digitalWrite(ledPin, !digitalRead(ledPin));
+      static boolean on = HIGH;
+      digitalWrite(ledPin, on);
+      on = !on;
     }
 
 Writing individual device drivers as event-driven functions makes it
@@ -65,9 +67,9 @@ Community
 
 Report bugs on our [GitHub bug tracker](http://github.com/geekscape/Aiko/issues).
 
-Written by Andy Gelme, Jon Oxer, and Pete Yandell.
+Written by Andy Gelme, Jonathan Oxer, and Pete Yandell.
 
 Copyright (C) 2009 by Geekscape Pty. Ltd.
-Copyright (C) 2009 by Jon Oxer.
+Copyright (C) 2009 by Jonathan Oxer.
 Copyright (C) 2009 by Pete Yandell.
 Released under the GPLv3 license (dual-licensed).
