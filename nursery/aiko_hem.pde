@@ -12,12 +12,14 @@
  *
  * To Do
  * ~~~~~
+ * - Handle "(controllerName= name)", where "name" greater than 16 characters.
  * - Complete serialHandler() communications.
+ * - Think about what happens when reusing "SExpressionArray commandArray" ?
  * - Implement: addCommandHandler() and removeCommandHandler().
- * - Implement: (display-title STRING) --> LCD position (0,0)
- * - Implement: (device-update NAME VALUE UNIT)
- * - Implement: (NAME= VALUE)
+ * - Implement: (displayTitle= STRING) --> LCD position (0,0)
+ * - Implement: (deviceUpdate NAME VALUE UNIT) or (NAME= VALUE)
  * - Implement: (profile)
+ * - Implement: (clock= hh:mm:ss)
  * - Improve error handling.
  */
 
@@ -42,16 +44,22 @@ using namespace Aiko;
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
 
 void (*commandHandlers[])() = {
+  controllerNameCommand,
+  relayCommand,
   resetClockCommand
 };
 
 char* commands[] = {
-  "reset-clock"
+  "controllerName=",
+  "relay=",
+  "resetClock"
 };
 
-int commandCount = sizeof(commands) / sizeof(*commands);
+byte commandCount = sizeof(commands) / sizeof(*commands);
 
-int parametersCount[] = { 0 };
+byte parameterCount[] = { 1, 1, 0 };
+
+SExpression parameter;
 
 void setup() {
   Serial.begin(115200);
@@ -59,9 +67,10 @@ void setup() {
   Events.addHandler(serialHandler,              10);
   Events.addHandler(blinkHandler,             1000);
   Events.addHandler(clockHandler,             1000);
+  Events.addHandler(controllerHandler,        1000);
   Events.addHandler(lcdHandler,               1000);
-  Events.addHandler(lightSensorHandler,       1000);
   Events.addHandler(temperatureSensorHandler, 1000);
+  Events.addHandler(lightSensorHandler,       1000);
 }
 
 void loop() {
@@ -79,7 +88,7 @@ void blinkInitialize(void) {
   blinkInitialized = true;
 }
 
-void blinkHandler() {
+void blinkHandler(void) {
   if (blinkInitialized == false) blinkInitialize();
 
   blinkStatus = ! blinkStatus;
@@ -92,7 +101,7 @@ byte second = 0;
 byte minute = 0;
 byte hour   = 0;
 
-void clockHandler() {
+void clockHandler(void) {
   if ((++ second) == 60) {
     second = 0;
     if ((++ minute) == 60) {
@@ -102,8 +111,32 @@ void clockHandler() {
   }
 }
 
-void resetClockCommand() {
+void resetClockCommand(void) {
   second = minute = hour = 0;
+// Serial.println("resetClockCommand()");
+}
+
+/* -------------------------------------------------------------------------- */
+
+char controllerName[16] = "default";
+
+void controllerHandler(void) {
+  Serial.print("(controllerName= ");
+  Serial.print(controllerName);
+  Serial.println(")");
+}
+
+void controllerNameCommand(void) {
+  char* parameterString = parameter.head();
+
+  for (byte index = 0; index < sizeof(controllerName); index ++) {
+    if (index == parameter.size()) {
+      controllerName[index] = '\0';
+      break;
+    }
+
+    controllerName[index] = *parameterString ++;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -226,6 +259,30 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
 
   // Must wait at least 750 milliseconds for temperature conversion to complete
   oneWireInitialized = true;
+}
+
+/* -------------------------------------------------------------------------- */
+
+byte relayInitialized = false;
+
+void relayInitialize(void) {
+  pinMode(PIN_RELAY, OUTPUT);
+
+  relayInitialized = true;
+}
+
+void relayCommand(void) {
+  if (relayInitialized == false) relayInitialize();
+
+  if (parameter.isEqualTo("on")) {
+    digitalWrite(PIN_RELAY, HIGH);
+  }
+  else if (parameter.isEqualTo("off")) {
+    digitalWrite(PIN_RELAY, LOW);
+  }
+  else {
+    Serial.println("(error parameterInvalid)");
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -413,8 +470,10 @@ void lcdHandler(void) {
  * Need to run this handler every 10 milliseconds.
  */
 
-void serialHandler() {
-  static char buffer[10];
+SExpressionArray commandArray;
+
+void serialHandler(void) {
+  static char buffer[32];
   static byte length = 0;
   static long timeOut = 0;
 
@@ -438,18 +497,44 @@ void serialHandler() {
     for (byte index = 0; index < count; index ++) {
       char ch = Serial.read();
 
-      if (ch == ';') {
-        (commandHandlers[0])();  // execute command
+      if (length >= (sizeof(buffer) / sizeof(*buffer))) {
+        Serial.println("(error bufferOverflow)");
+        length = 0;
+      }
+      else if (ch == '\n'  ||  ch == ';') {
+        buffer[length] = '\0';  // TODO: Check this working correctly, seems to be some problems when command is longer than buffer length ?!?
+
+        char* result = commandArray.parse(buffer);  // TODO: Error handling when result == null
+/*
+        for (int index = 0; index < commandArray.length(); index ++) {  // TODO: Check failure cases
+          Serial.print(index);
+          Serial.print(": ");
+          Serial.println(commandArray[index].head());
+        }
+ */
+        int commandIndex = 0;
+
+        while (commandIndex < commandCount) {
+          if (commandArray[0].isEqualTo(commands[commandIndex])) {
+            if (parameterCount[commandIndex] != (commandArray.length() - 1)) {
+              Serial.println("(error parameterCount)");
+            }
+            else {  // execute command
+              if (parameterCount[commandIndex] > 0) parameter = commandArray[1];
+              (commandHandlers[commandIndex])();
+            }
+            break;
+          }
+
+          commandIndex ++;
+        }
+
+        if (commandIndex >= commandCount) Serial.println("(error unknownCommand)");
+
         length = 0;
       }
       else {
-        if (length >= (sizeof(buffer) / sizeof(*buffer))) {
-          Serial.println("(error overflow)");
-          length = 0;
-        }
-        else {
-          buffer[length ++] = ch;
-        }
+        buffer[length ++] = ch;
       }
     }
 
