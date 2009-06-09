@@ -1,6 +1,10 @@
 #ifndef Wiring_H
 #define Wiring_H
 
-unsigned int millis() { return 0; }
+/* Stub functions */
+unsigned long millis();
+
+/* Control functions */
+void setMillis(unsigned long millis);
 
 #endif

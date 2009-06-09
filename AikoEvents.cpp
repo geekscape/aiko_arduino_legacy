@@ -13,7 +13,7 @@ namespace Aiko {
   EventManager Events;
   
   EventManager::EventManager() {
-    handlerCount_ = 0;
+    reset();
   }
   
   void EventManager::addHandler(void (*handler)(), unsigned int interval) {
@@ -30,6 +30,10 @@ namespace Aiko {
     unsigned long elapsed = new_time - old_time;
     for (int i = 0; i < handlerCount_; i++) handlers_[i].loop(elapsed);
     old_time = new_time;
+  }
+
+  void EventManager::reset() {
+    handlerCount_ = 0;
   }
 
 };

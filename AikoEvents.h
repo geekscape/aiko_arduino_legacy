@@ -1,6 +1,9 @@
 #ifndef AikoEvents_h
 #define AikoEvents_h
 
+#include <iostream>
+using namespace std;
+
 namespace Aiko {
   
   struct EventHandler {
@@ -22,6 +25,7 @@ namespace Aiko {
       EventManager();
       void addHandler(void (*handler)(), unsigned int interval);
       void loop();
+      void reset();
       
     private:
       int handlerCount_;
