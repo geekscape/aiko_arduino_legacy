@@ -50,6 +50,17 @@ repository by clicking the "download" link at:
 
     http://github.com/geekscape/Aiko/tree/master
 
+Upgrading
+---------
+
+To upgrade to the latest version:
+
+    cd /Applications/arduino-0015/hardware/libraries/Aiko
+    git pull
+    make clean
+
+(If you're on a Mac, you'll need XCode installed.)
+
 
 Modules
 =======
