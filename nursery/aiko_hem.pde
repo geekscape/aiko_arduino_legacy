@@ -289,16 +289,17 @@ void relayCommand(void) {
 /* LCD KS0066 4-bit data interface, 3 Arduino pins and MC14094 8-bit register
  * http://www.datasheetsite.com/datasheet/KS0066
  *
+ * MC14094 input:  Arduino digital pin 2=Clock, pin 4=Data, pin 7=Strobe
  * MC14094 output: Q8=DB4, Q7=DB5, Q6=DB6, Q5=DB7, Q4=E, Q3=RW, Q2=RS, Q1=None
  * http://www.ee.mut.ac.th/datasheet/MC14094.pdf
  */
 
 // LCD pin bit-patterns, output from MC14094 -> LCD KS0066 input
-#define LCD_ENABLE_HIGH 0x10  // MC14094 Q3 -> LCD E
+#define LCD_ENABLE_HIGH 0x10  // MC14094 Q4 -> LCD E
 #define LCD_ENABLE_LOW  0xEF  //   Enable (high) / Disable (low)
-#define LCD_RW_HIGH     0x20  // MC14094 Q2 -> LCD RW
+#define LCD_RW_HIGH     0x20  // MC14094 Q3 -> LCD RW
 #define LCD_RW_LOW      0xDF  //   Read (high) / Write (low)
-#define LCD_RS_HIGH     0x40  // MC14094 Q1 -> LCD RS
+#define LCD_RS_HIGH     0x40  // MC14094 Q2 -> LCD RS
 #define LCD_RS_LOW      0xBF  //   Data (high) / Instruction (low) Select
 
 // LCD Commands
