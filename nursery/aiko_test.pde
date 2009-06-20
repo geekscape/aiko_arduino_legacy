@@ -202,9 +202,27 @@ void clockHandler() {
 /* LCD KS0066 4-bit data interface, 3 Arduino pins and MC14094 8-bit register
  * http://www.datasheetsite.com/datasheet/KS0066
  *
- * MC14094 input:  Arduino digital pin 2=Clock, 4=Data, 7=Strobe
+ * MC14094 input:  Arduino digital pin 02=Clock, 04=Data, 07=Strobe
  * MC14094 output: Q8=DB4, Q7=DB5, Q6=DB6, Q5=DB7, Q4=E, Q3=RW, Q2=RS, Q1=None
  * http://www.ee.mut.ac.th/datasheet/MC14094.pdf
+ *
+ *   +--------------------------------------------+
+ *   |    Arduino (ATMega 168 or 328)             |
+ *   |    D02           D04           D07         |
+ *   +----+-------------+-------------+-----------+
+ *        |4            |6            |13
+ *        |3            |2            |1
+ *   +----+-------------+-------------+-----------+
+ *   |    Clock         Data          Strobe      |
+ *   |    MC14094 8-bit shift/latch register      |
+ *   |    Q8   Q7   Q6   Q5   Q4   Q3   Q2   Q1   |
+ *   +----+----+----+----+----+----+----+----+----+
+ *        |11  |12  |13  |14  |7   |6   |5   |4
+ *        |11  |12  |13  |14  |6   |5   |4
+ *   +----+----+----+----+----+----+----+---------+
+ *   |    DB4  DB5  DB6  DB7  E    RW   RS        |
+ *   |               LCD KS0066                   |
+ *   +--------------------------------------------+
  */
 
 // LCD pin bit-patterns, output from MC14094 -> LCD KS0066 input
