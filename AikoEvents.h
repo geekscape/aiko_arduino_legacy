@@ -1,7 +1,6 @@
 #ifndef AikoEvents_h
 #define AikoEvents_h
 
-#include <iostream>
 using namespace std;
 
 namespace Aiko {
