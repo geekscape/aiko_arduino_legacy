@@ -26,17 +26,12 @@ namespace Aiko {
 
   TimingManager Timing;
 
-  void TimingManager::setup() {
-    timer1Counter.intervalCount = 0;
-    timer1Counter.overflowCountdown = 250;    
+  TimingManager::TimingManager() {
+    isSetUp_ = false;
+  }
 
-    bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode.
-    bitClear(TCCR1A, WGM11);
-    bitSet  (TCCR1A, WGM10);
- 
-    bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts.
-
-    isSetUp_ = true;
+  void TimingManager::disableArduinoTimer() {
+    bitClear(TIMSK0, TOIE0);
   }
 
   unsigned long TimingManager::millis() {
@@ -58,8 +53,17 @@ namespace Aiko {
     return (counter.intervalCount << 8) + extraMillis;
   }
 
-  void TimingManager::disableArduinoTimer() {
-    bitClear(TIMSK0, TOIE0);
+  void TimingManager::setup() {
+    timer1Counter.intervalCount = 0;
+    timer1Counter.overflowCountdown = 250;    
+
+    bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode.
+    bitClear(TCCR1A, WGM11);
+    bitSet  (TCCR1A, WGM10);
+ 
+    bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts.
+
+    isSetUp_ = true;
   }
 
 };

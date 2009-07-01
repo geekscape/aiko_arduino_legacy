@@ -33,10 +33,10 @@ namespace Aiko {
     private:
       void start(unsigned long time);
 
-      bool isRunning_;
+      bool          isRunning_;
       unsigned long lastLoopTime_;
-      int handlerCount_;
-      EventHandler handlers_[10];
+      int           handlerCount_;
+      EventHandler  handlers_[10];
   };
   
   extern EventManager Events;

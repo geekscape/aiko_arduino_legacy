@@ -9,23 +9,12 @@
  * - Add a removeHandler method.
  */
 
-
 namespace Aiko {
 
   EventManager Events;
  
   EventManager::EventManager() {
     reset();
-  }
-
-  void EventManager::start(unsigned long time) {
-    lastLoopTime_ = time;
-    isRunning_ = true;
-  }
-  
-  void EventManager::reset() {
-    handlerCount_ = 0;
-    isRunning_ = false;
   }
 
   void EventManager::addHandler(void (*handler)(), unsigned int interval) {
@@ -42,4 +31,14 @@ namespace Aiko {
     lastLoopTime_ = time;
   }
 
+  void EventManager::reset() {
+    handlerCount_ = 0;
+    isRunning_ = false;
+  }
+
+  void EventManager::start(unsigned long time) {
+    lastLoopTime_ = time;
+    isRunning_ = true;
+  }
+  
 };
