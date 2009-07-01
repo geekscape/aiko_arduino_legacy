@@ -43,8 +43,8 @@ namespace Aiko {
     counter.overflow_countdown = timer1_counter.overflow_countdown;
     counter.interval_count     = timer1_counter.interval_count;
     SREG = oldSREG;
-    
-    extra_ticks += (unsigned int)(250 - counter.overflow_countdown) << 8; // Add TCNT1 for more accuracy.
+  
+    extra_ticks += (unsigned int)(250 - counter.overflow_countdown) << 8;
     unsigned int extra_millis = extra_ticks/250;
     
     return (counter.interval_count << 8) + extra_millis;
