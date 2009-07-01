@@ -1,17 +1,19 @@
 #ifndef AikoEvents_h
 #define AikoEvents_h
 
+#include "AikoTiming.h"
+
 using namespace std;
 
 namespace Aiko {
   
   struct EventHandler {
     void loop(unsigned int elapsed) {
-      counter_ += elapsed;
-      if (counter_ >= interval_) {
-        counter_ -= interval_;
+      if (counter_ <= elapsed) {
+        counter_ += interval_;
         (*handler_)();
       }
+      counter_ -= elapsed;
     }
 
     unsigned int interval_;
@@ -23,10 +25,16 @@ namespace Aiko {
     public:
       EventManager();
       void addHandler(void (*handler)(), unsigned int interval);
-      void loop();
+      void loop(unsigned long time = Timing.millis());
+
       void reset();
+      void restart();
       
     private:
+      void start(unsigned long time);
+
+      bool isRunning_;
+      unsigned long lastLoopTime_;
       int handlerCount_;
       EventHandler handlers_[10];
   };

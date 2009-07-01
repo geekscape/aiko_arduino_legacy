@@ -7,10 +7,4 @@
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 
-/* Stub functions */
-unsigned long millis();
-
-/* Control functions */
-void setMillis(unsigned long millis);
-
 #endif

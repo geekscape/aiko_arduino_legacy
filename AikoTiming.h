@@ -5,8 +5,14 @@ namespace Aiko {
 
   class TimingManager {
     public:
-      void setup(bool disable_arduino_timer = false);
+      TimingManager() { isSetUp_ = false; }
       unsigned long millis(void);
+      void disableArduinoTimer();
+
+    private:
+      void setup();
+
+      bool isSetUp_;
   };
 
   extern TimingManager Timing;

@@ -5,55 +5,61 @@
 namespace Aiko {
 
   union TimerCounter {
-    unsigned long interval_count;  // Increments on every 250th overflow interrupt,
-                                   // which is every 256ms on a 16MHz processor.
-                                   // Will wrap around after ~35 years.
+    unsigned long intervalCount;  // Increments on every 250th overflow interrupt,
+                                  // which is every 256ms on a 16MHz processor.
+                                  // Will wrap around after ~35 years.
     struct {
-      unsigned int interval_count_lo, interval_count_hi;
-      unsigned char overflow_countdown;  // Decrements on each overflow interrupt.
+      unsigned int intervalCountLo, intervalCountHi;
+      unsigned char overflowCountdown;  // Decrements on each overflow interrupt.
     };
   };
 
-  static volatile union TimerCounter timer1_counter;
+  static volatile union TimerCounter timer1Counter;
 
   ISR(TIMER1_OVF_vect) {
-    if (--timer1_counter.overflow_countdown == 0) {
-      timer1_counter.overflow_countdown = 250;
-      if (++timer1_counter.interval_count_lo == 0)
-        ++timer1_counter.interval_count_hi;
+    if (--timer1Counter.overflowCountdown == 0) {
+      timer1Counter.overflowCountdown = 250;
+      if (++timer1Counter.intervalCountLo == 0)
+        ++timer1Counter.intervalCountHi;
     }
   }
 
   TimingManager Timing;
 
-  void TimingManager::setup(bool disable_arduino_timer) {
-    timer1_counter.interval_count = 0;
-    timer1_counter.overflow_countdown = 250;    
-
-    if (disable_arduino_timer) bitClear(TIMSK0, TOIE0);
+  void TimingManager::setup() {
+    timer1Counter.intervalCount = 0;
+    timer1Counter.overflowCountdown = 250;    
 
     bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode.
     bitClear(TCCR1A, WGM11);
     bitSet  (TCCR1A, WGM10);
  
     bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts.
+
+    isSetUp_ = true;
   }
 
-  unsigned long TimingManager::millis(void) {
+  unsigned long TimingManager::millis() {
+    if (!isSetUp_) setup();
+
     TimerCounter counter;
 
     uint8_t oldSREG = SREG;
     cli();
-    unsigned int extra_ticks   = TCNT1;
-    if ((TIFR1 & _BV(TOV1)) && extra_ticks == 0) extra_ticks = 256; // The timer has overflowed, but the interrupt hasn't fired yet.
-    counter.overflow_countdown = timer1_counter.overflow_countdown;
-    counter.interval_count     = timer1_counter.interval_count;
+    unsigned int extraTicks   = TCNT1;
+    if ((TIFR1 & _BV(TOV1)) && extraTicks == 0) extraTicks = 256; // The timer has overflowed, but the interrupt hasn't fired yet.
+    counter.overflowCountdown = timer1Counter.overflowCountdown;
+    counter.intervalCount     = timer1Counter.intervalCount;
     SREG = oldSREG;
   
-    extra_ticks += (unsigned int)(250 - counter.overflow_countdown) << 8;
-    unsigned int extra_millis = extra_ticks/250;
+    extraTicks += (unsigned int)(250 - counter.overflowCountdown) << 8;
+    unsigned int extraMillis = extraTicks/250;
     
-    return (counter.interval_count << 8) + extra_millis;
+    return (counter.intervalCount << 8) + extraMillis;
+  }
+
+  void TimingManager::disableArduinoTimer() {
+    bitClear(TIMSK0, TOIE0);
   }
 
 };
