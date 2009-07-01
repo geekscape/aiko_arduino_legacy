@@ -5,35 +5,41 @@
 namespace Aiko {
 
   union TimerCounter {
+    unsigned long interval_count;  // Increments on every 250th overflow interrupt,
+                                   // which is every 256ms on a 16MHz processor.
+                                   // Will wrap around after ~35 years.
     struct {
       unsigned int interval_count_lo, interval_count_hi;
-      unsigned char overflow_countdown;
+      unsigned char overflow_countdown;  // Decrements on each overflow interrupt.
     };
-    unsigned long interval_count;
   };
 
-  volatile union TimerCounter timer1_counter;
+  static volatile union TimerCounter timer1_counter;
 
   ISR(TIMER1_OVF_vect) {
     if (--timer1_counter.overflow_countdown == 0) {
       timer1_counter.overflow_countdown = 250;
       if (++timer1_counter.interval_count_lo == 0)
-        ++timer1_counter.interval_count_hi == 0;
+        ++timer1_counter.interval_count_hi;
     }
   }
 
-  void Timing::setup(void) {
+  TimingManager Timing;
+
+  void TimingManager::setup(bool disable_arduino_timer) {
     timer1_counter.interval_count = 0;
     timer1_counter.overflow_countdown = 250;    
 
-    bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode
+    if (disable_arduino_timer) bitClear(TIMSK0, TOIE0);
+
+    bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode.
     bitClear(TCCR1A, WGM11);
     bitSet  (TCCR1A, WGM10);
-   
-    bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts
+ 
+    bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts.
   }
 
-  unsigned long Timing::millis(void) {
+  unsigned long TimingManager::millis(void) {
     TimerCounter counter;
 
     uint8_t oldSREG = SREG;

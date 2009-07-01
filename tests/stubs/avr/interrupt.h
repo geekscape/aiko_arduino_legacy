@@ -15,8 +15,11 @@ extern uint8_t TCCR1A; // Timer/Counter1 Control Register A
 extern uint8_t TCCR1B; // Timer/Counter1 Control Register B
 #define WGM12 3        // Waveform Generation Mode bit 1
 
-extern uint8_t TIMSK1; // Timer/Counter Interrupt Mask Register
-#define TOIE1 0        // Timer/Counter0 Overflow Interrupt Enable
+extern uint8_t TIMSK0; // Timer/Counter0 Interrupt Mask Register
+#define TOIE0 0        // Timer/Counter0 Overflow Interrupt Enable
+
+extern uint8_t TIMSK1; // Timer/Counter1 Interrupt Mask Register
+#define TOIE1 0        // Timer/Counter1 Overflow Interrupt Enable
 
 extern uint8_t TIFR1;  // Timer/Counter1 Interrupt Flag Register
 #define TOV1 0         // Timer/Counter1, Overflow Flag

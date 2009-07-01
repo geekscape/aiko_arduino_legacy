@@ -3,11 +3,13 @@
 
 namespace Aiko {
 
-  class Timing {
+  class TimingManager {
     public:
-      static void setup(void);
-      static unsigned long millis(void);
+      void setup(bool disable_arduino_timer = false);
+      unsigned long millis(void);
   };
+
+  extern TimingManager Timing;
 
 };
 
