@@ -5,6 +5,7 @@ namespace Aiko {
 
   char* SExpression::scan(char* head, char* tail, SExpression* expression) {
     char* s = skipWhitespace(head, tail);
+    if (s >= tail) return tail;
     switch(*s) {
       case '(':
         s = scanArray(s, tail, expression);
