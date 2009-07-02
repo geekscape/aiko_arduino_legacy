@@ -5,16 +5,17 @@ namespace Aiko {
 
   char* SExpression::scan(char* head, char* tail, SExpression* expression) {
     char* s = skipWhitespace(head, tail);
-    if (s >= tail) return tail;
-    switch(*s) {
-      case '(':
-        s = scanArray(s, tail, expression);
-        break;
-      default:
-        s = scanRawString(s, tail, expression);
-        break;
+    if (s < tail) {
+      switch(*s) {
+        case '(':
+          s = scanArray(s, tail, expression);
+          break;
+        default:
+          s = scanRawString(s, tail, expression);
+          break;
+      }
+      s = skipWhitespace(s, tail);
     }
-    s = skipWhitespace(s, tail);
     return s;
   }
 

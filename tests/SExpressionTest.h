@@ -47,6 +47,17 @@ public:
     TS_ASSERT_EQUALS(s, b-1);
   }
 
+  void test_should_scan_whitespace() {
+    char *a = "   ";
+    char *b = a + strlen(a);
+
+    SExpression expression;
+    char *s = expression.scan(a, b);
+    TS_ASSERT_EQUALS(expression.head(), (char*)0);
+    TS_ASSERT_EQUALS(expression.tail(), (char*)0);
+    TS_ASSERT_EQUALS(s, b);
+  }
+
   /* SExpressionArray tests */
 
   void test_array_should_parse_an_empty_expression() {
