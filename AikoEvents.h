@@ -26,9 +26,7 @@ namespace Aiko {
       EventManager();
       void addHandler(void (*handler)(), unsigned int interval);
       void loop(unsigned long time = Timing.millis());
-
       void reset();
-      void restart();
       
     private:
       void start(unsigned long time);

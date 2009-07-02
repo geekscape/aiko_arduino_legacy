@@ -18,10 +18,10 @@ public:
 
   void test_should_call_our_handler_at_regular_intervals() {
     Events.addHandler(testHandler, 1000);
-    Events.loop(0);
-    TS_ASSERT_EQUALS(handlerCallCount, 1);
-    Events.loop(1000);
-    TS_ASSERT_EQUALS(handlerCallCount, 2);
+    for (int i = 0; i < 5; i++) {
+      Events.loop(i * 1000);
+      TS_ASSERT_EQUALS(handlerCallCount, i + 1);
+    }
   }
 
 };
