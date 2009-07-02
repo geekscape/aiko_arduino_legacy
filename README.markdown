@@ -69,6 +69,8 @@ Modules
   a bunch of devices connected to your Arduino.
 - **SExpression** - Parse simple SExpressions. Think of this as the
   Arduino equivalent of JSON.
+- **Timing** - Accurate timing, including better replacements for the
+  standard Arduino timing functions.
 
 See the corresponding files in the docs directory for more info on each module.
 
