@@ -1,13 +1,7 @@
 #include "AikoEvents.h"
 #include "AikoTiming.h"
+#include <stdlib.h>
 #include <wiring.h>
-
-/*
- * TODO
- *
- * - Prevent registering too many handlers.
- * - Add a removeHandler method.
- */
 
 namespace Aiko {
 
@@ -17,22 +11,53 @@ namespace Aiko {
     reset();
   }
 
-  void EventManager::addHandler(void (*handler)(), unsigned int interval) {
-    handlers_[handlerCount_].interval_ = interval;
-    handlers_[handlerCount_].handler_  = handler;
-    handlers_[handlerCount_].counter_  = 0; 
-    handlerCount_++;
+  void EventManager::addHandler(EventHandler* handler) {
+    if (firstHandler_)
+      lastHandler()->next_ = handler;
+    else
+      firstHandler_ = handler;
+    handler->next_ = 0;
+  }
+
+  EventHandler* EventManager::handlerBefore(EventHandler* handler) {
+    EventHandler* previousHandler = firstHandler_;
+    while (previousHandler && previousHandler->next_ != handler) previousHandler = previousHandler->next_;
+    return previousHandler;
+  }
+
+  EventHandler* EventManager::lastHandler() {
+    EventHandler* lastHandler = firstHandler_;
+    while (lastHandler->next_) lastHandler = lastHandler->next_;
+    return lastHandler;
+  }
+
+  void EventManager::removeHandler(EventHandler* handler) {
+    if (handler == firstHandler_)
+      firstHandler_ = handler->next_;
+    else
+      handlerBefore(handler)->next_ = handler->next_;
+    handler->next_ = 0;
+  }
+
+  void EventManager::addHandler(void (*handlerFunction)(), unsigned int interval) {
+    EventHandler* handler = static_cast<EventHandler*>(malloc(sizeof(EventHandler)));
+    handler->interval_ = interval;
+    handler->handler_  = handlerFunction;
+    handler->counter_  = 0;
+    addHandler(handler);
   }
 
   void EventManager::loop(unsigned long time) {
     if (!isRunning_) start(time);
     unsigned long elapsed = time - lastLoopTime_;
-    for (int i = 0; i < handlerCount_; i++) handlers_[i].loop(elapsed);
+    for (EventHandler* handler = firstHandler_; handler; handler = handler->next_) {
+      handler->loop(elapsed);
+    }
     lastLoopTime_ = time;
   }
 
   void EventManager::reset() {
-    handlerCount_ = 0;
+    firstHandler_ = 0;
     isRunning_ = false;
   }
 
