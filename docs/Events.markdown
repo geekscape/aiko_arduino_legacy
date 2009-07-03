@@ -34,6 +34,14 @@ will be called after readTemperature() but before logData(). This
 ensures the execution order of functions is always predictable.
 
 
+### Events.addOneShotHandler
+
+Adds a handler that will be called once after a specified delay (in
+milliseconds). For example, to invoke myFunction in 1 second, call:
+
+    Events.addOneShotHandler(myFunction, 1000):
+
+
 ### Events.loop
 
 To cause event handlers specified using addHandler to be executed the

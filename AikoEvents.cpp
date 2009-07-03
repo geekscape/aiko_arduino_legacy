@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <wiring.h>
 
+#include <iostream>
+
 namespace Aiko {
 
   /* EventHanderList */
@@ -49,7 +51,7 @@ namespace Aiko {
   }
 
   void EventHandlerList::resetIterator() {
-    nextHandler_    = firstHandler_;
+    nextHandler_ = firstHandler_;
   }
 
 
@@ -61,19 +63,38 @@ namespace Aiko {
     handlerList_.add(handler);
   }
 
-  void EventManager::addHandler(void (*handlerFunction)(), unsigned int interval) {
+  void EventManager::addHandler(void (*handlerFunction)(), unsigned int period, unsigned int delay) {
     EventHandler* handler = static_cast<EventHandler*>(malloc(sizeof(EventHandler)));
-    handler->interval_ = interval;
-    handler->handler_  = handlerFunction;
-    handler->counter_  = 0;
+    handler->handler_   = handlerFunction;
+    handler->period_    = period;
+    handler->countdown_ = delay;
     addHandler(handler);
+  }
+
+  void EventManager::addOneShotHandler(void (*handlerFunction)(), unsigned int delay) {
+    addHandler(handlerFunction, 0, delay);
   }
 
   void EventManager::loop(unsigned long time) {
     if (!isRunning_) start(time);
-    unsigned long elapsed = time - lastLoopTime_;
+    long elapsed = time - lastLoopTime_;
+
     handlerList_.resetIterator();
-    while (EventHandler* handler = handlerList_.next()) handler->loop(elapsed);
+    while (EventHandler* handler = handlerList_.next()) handler->countdown_ -= elapsed;
+      
+    handlerList_.resetIterator();
+    while (EventHandler* handler = handlerList_.next()) {
+      if (handler->countdown_ <= 0) {
+        handler->fire();
+        if (handler->period_ > 0)
+          handler->countdown_ += handler->period_;
+        else {
+          removeHandler(handler);
+          free(handler);
+        }
+      }
+    }
+
     lastLoopTime_ = time;
   }
 

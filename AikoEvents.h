@@ -8,18 +8,12 @@ using namespace std;
 namespace Aiko {
   
   struct EventHandler {
-    void loop(unsigned int elapsed) {
-      if (counter_ <= elapsed) {
-        counter_ += interval_;
-        (*handler_)();
-      }
-      counter_ -= elapsed;
-    }
-
-    unsigned int interval_;
     void (*handler_)();
-    unsigned int counter_;
+    unsigned int period_;
+    long countdown_;
     struct EventHandler* next_;
+
+    void fire() { (*handler_)(); }
   };
 
   class EventHandlerList {
@@ -43,13 +37,16 @@ namespace Aiko {
     public:
       EventManager() { reset(); }
       void addHandler(EventHandler* handler);
-      void addHandler(void (*handler)(), unsigned int interval);
+      void addHandler(void (*handler)(), unsigned int interval, unsigned int delay = 0);
+      void addOneShotHandler(void (*handler)(), unsigned int delay);
       void loop(unsigned long time = Timing.millis());
       void removeHandler(EventHandler* handler);
       void reset();
       
     private:
       void start(unsigned long time);
+      void loopRepeatingHandler(EventHandler* handler);
+      void loopOneShotHandler(EventHandler* handler);
 
       bool              isRunning_;
       unsigned long     lastLoopTime_;

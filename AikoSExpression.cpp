@@ -4,6 +4,7 @@
 namespace Aiko {
 
   char* SExpression::scan(char* head, char* tail, SExpression* expression) {
+    if (expression) expression->head_ = expression->tail_ = 0;
     char* s = skipWhitespace(head, tail);
     if (s < tail) {
       switch(*s) {

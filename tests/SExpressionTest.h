@@ -53,8 +53,8 @@ public:
 
     SExpression expression;
     char *s = expression.scan(a, b);
-    TS_ASSERT_EQUALS(expression.head(), (char*)0);
-    TS_ASSERT_EQUALS(expression.tail(), (char*)0);
+    TS_ASSERT(expression.head() == (char*)0);
+    TS_ASSERT(expression.tail() == (char*)0);
     TS_ASSERT_EQUALS(s, b);
   }
 
