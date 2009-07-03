@@ -22,9 +22,26 @@ namespace Aiko {
     struct EventHandler* next_;
   };
 
+  class EventHandlerList {
+    public:
+      EventHandlerList() { flush(); }
+      void add(EventHandler* handler);
+      void flush();
+      EventHandler* next();
+      void remove(EventHandler* handler);
+      void resetIterator();
+
+    private:
+      EventHandler* firstHandler_;
+      EventHandler* nextHandler_;
+
+      EventHandler* handlerBefore(EventHandler* handler);
+      EventHandler* last();
+  };
+
   class EventManager {
     public:
-      EventManager();
+      EventManager() { reset(); }
       void addHandler(EventHandler* handler);
       void addHandler(void (*handler)(), unsigned int interval);
       void loop(unsigned long time = Timing.millis());
@@ -32,13 +49,11 @@ namespace Aiko {
       void reset();
       
     private:
-      EventHandler* handlerBefore(EventHandler* handler);
-      EventHandler* lastHandler();
       void start(unsigned long time);
 
       bool              isRunning_;
       unsigned long     lastLoopTime_;
-      EventHandler*     firstHandler_;
+      EventHandlerList  handlerList_;
   };
   
   extern EventManager Events;

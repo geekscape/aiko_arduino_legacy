@@ -4,12 +4,12 @@
 
 using namespace Aiko;
 
-int handlerCallCount = 0;
-void testHandler() {
+static int handlerCallCount = 0;
+static void testHandler() {
   handlerCallCount++;
 }
 
-class EventsTests : public CxxTest::TestSuite {
+class EventManagerTests : public CxxTest::TestSuite {
 public:
   void setUp() {
     handlerCallCount = 0;
