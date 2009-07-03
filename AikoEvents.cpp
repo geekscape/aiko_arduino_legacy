@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <wiring.h>
 
-#include <iostream>
-
 namespace Aiko {
 
   /* EventHanderList */
