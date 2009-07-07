@@ -65,6 +65,7 @@ To upgrade to the latest version:
 Modules
 =======
 
+- **Callback** - Easy to use function and method callbacks.
 - **Events** - Schedule regular callbacks so you can easily deal with
   a bunch of devices connected to your Arduino.
 - **SExpression** - Parse simple SExpressions. Think of this as the
