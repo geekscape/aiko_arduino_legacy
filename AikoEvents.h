@@ -2,18 +2,19 @@
 #define AikoEvents_h
 
 #include "AikoTiming.h"
+#include "AikoCallback.h"
 
 using namespace std;
 
 namespace Aiko {
   
   struct EventHandler {
-    void (*handler_)();
+    Callback callback_;
     unsigned int period_;
     long countdown_;
     struct EventHandler* next_;
 
-    void fire() { (*handler_)(); }
+    void fire() { callback_(); }
   };
 
   class EventHandlerList {
