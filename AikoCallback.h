@@ -1,3 +1,6 @@
+#ifndef AikoCallback_h
+#define AikoCallback_h
+
 /* Based on "CALLBACKS IN C++ USING TEMPLATE FUNCTORS" by Rich Hickey */
 /* http://www.tutok.sk/fastgl/callback.html */
 
@@ -73,4 +76,6 @@ namespace Aiko {
   }
 
 };
+
+#endif
 
