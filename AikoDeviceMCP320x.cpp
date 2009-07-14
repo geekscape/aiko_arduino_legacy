@@ -1,12 +1,12 @@
 #include "AikoDeviceMCP320x.h"
+#include "AikoDeviceSPIBus.h"
 #include <wiring.h>
 
 namespace Aiko {
   namespace Device {
 
-    MCP320x::MCP320x(unsigned char slaveSelectPin, SPIBusManager &spiBus) {
+    MCP320x::MCP320x(unsigned char slaveSelectPin) {
       slaveSelectPin_ = slaveSelectPin;
-      spiBus_         = &spiBus;
       isSetUp_        = false;
     }
 
@@ -17,9 +17,9 @@ namespace Aiko {
     unsigned int MCP320x::readChannel(unsigned char channel) {
       if (!isSetUp_) setup();
       select();
-      spiBus_->transfer(B00000110 | (channel >> 2));
-      unsigned char msb = spiBus_->transfer((channel << 6) & 0xFF) & 0x0F;
-      unsigned char lsb = spiBus_->transfer(0);
+      SPIBus.transfer(B00000110 | (channel >> 2));
+      unsigned char msb = SPIBus.transfer((channel << 6) & 0xFF) & 0x0F;
+      unsigned char lsb = SPIBus.transfer(0);
       deselect();
       return ((unsigned int)msb << 8) | lsb;
     }
