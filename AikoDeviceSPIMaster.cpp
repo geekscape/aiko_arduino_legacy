@@ -6,13 +6,15 @@
 namespace Aiko {
   namespace Device {
 
-    SPIMaster::SPIMaster(unsigned char sclkPin, unsigned char misoPin, unsigned char mosiPin) {
-       sclkPin_ = sclkPin;
-       misoPin_ = misoPin;
-       mosiPin_ = mosiPin;
+    SPIMaster::SPIMaster(unsigned char sclkPin, unsigned char misoPin, unsigned char mosiPin, unsigned char ssPin)  {
+      sclkPin_ = sclkPin;
+      misoPin_ = misoPin;
+      mosiPin_ = mosiPin;
+      ssPin_   = ssPin;
     }
 
     void SPIMaster::setup() {
+      pinMode(ssPin_,   OUTPUT);
       pinMode(mosiPin_, OUTPUT);
       pinMode(misoPin_, INPUT);
       pinMode(sclkPin_, OUTPUT);
@@ -33,6 +35,18 @@ namespace Aiko {
     }
     
     unsigned char SPIMaster::transfer(unsigned char output) {
+      // FIXME: We shouldn't need to set the master flag before each write,
+      // but it seems to get pulled low sometimes. There's a danger that
+      // it'll get pulled low between the bitSet and SPDR being set, which
+      // would cause a lockup.
+      // 
+      // In theory, as long as we have the SS line set high, the MSTR flag
+      // should never be pulled low. I'd love to know why it happens
+      // sometimes.
+      // 
+      // A good safety valve would be to check the MSTR flag in the loop,
+      // and bomb out if it's low.
+      bitSet(SPCR, MSTR);
       SPDR = output;
       while (bitRead(SPSR, SPIF) == 0); // FIXME: This can lock us up if we're not careful!
       return SPDR;

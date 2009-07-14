@@ -25,9 +25,9 @@ namespace Aiko {
   
     unsigned int MCP320x::readChannel(unsigned char channel) {
       select();
-      spiMaster_->transfer(B00000100 | (channel >> 2));
+      spiMaster_->transfer(B00000110 | (channel >> 2));
       unsigned char msb = spiMaster_->transfer((channel << 6) & 0xFF) & 0xF;
-      unsigned char lsb = spiMaster_->transfer(0xFF);
+      unsigned char lsb = spiMaster_->transfer(0);
       deselect();
       return ((unsigned int)msb << 8) | lsb;
     }
