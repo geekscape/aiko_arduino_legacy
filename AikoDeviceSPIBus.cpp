@@ -1,4 +1,4 @@
-#include "AikoDeviceSPIMaster.h"
+#include "AikoDeviceSPIBus.h"
 #include <wiring.h>
 
 #define bitValue(bit, bitValue) ((bitValue) ? (1UL << (bit)) : 0)
@@ -6,14 +6,21 @@
 namespace Aiko {
   namespace Device {
 
-    SPIMaster::SPIMaster(unsigned char sclkPin, unsigned char misoPin, unsigned char mosiPin, unsigned char ssPin)  {
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328__)
+    SPIBusManager SPIBus(13, 12, 11, 10);
+#elif defined(__AVR_ATmega1280__)
+    SPIBusManager SPIBus(52, 50, 51, 53);
+#endif
+
+    SPIBusManager::SPIBusManager(unsigned char sclkPin, unsigned char misoPin, unsigned char mosiPin, unsigned char ssPin)  {
       sclkPin_ = sclkPin;
       misoPin_ = misoPin;
       mosiPin_ = mosiPin;
       ssPin_   = ssPin;
+      isSetUp_ = false;
     }
 
-    void SPIMaster::setup() {
+    void SPIBusManager::setup() {
       pinMode(ssPin_,   OUTPUT);
       pinMode(mosiPin_, OUTPUT);
       pinMode(misoPin_, INPUT);
@@ -32,9 +39,12 @@ namespace Aiko {
            | bitValue(CPHA, 0)  // Clock Phase           (mode 0)
            | bitValue(SPR1, 0)  // SPI Clock Rate Select (1/16th of CPU clock)
            | bitValue(SPR0, 1);
+
+      isSetUp_ = true;
     }
     
-    unsigned char SPIMaster::transfer(unsigned char output) {
+    unsigned char SPIBusManager::transfer(unsigned char output) {
+      if (!isSetUp_) setup();
       // FIXME: We shouldn't need to set the master flag before each write,
       // but it seems to get pulled low sometimes. There's a danger that
       // it'll get pulled low between the bitSet and SPDR being set, which
