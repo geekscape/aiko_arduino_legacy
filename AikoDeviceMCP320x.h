@@ -10,8 +10,6 @@ namespace Aiko {
         unsigned int readChannel(unsigned char channel);
       
       private:
-        void deselect();
-        void select();
         void setup();
   
         unsigned char slaveSelectPin_;

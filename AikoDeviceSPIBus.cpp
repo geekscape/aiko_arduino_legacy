@@ -56,7 +56,7 @@ namespace Aiko {
       // 
       // A good safety valve would be to check the MSTR flag in the loop,
       // and bomb out if it's low.
-      bitSet(SPCR, MSTR);
+      // bitSet(SPCR, MSTR);
       SPDR = output;
       while (bitRead(SPSR, SPIF) == 0); // FIXME: This can lock us up if we're not careful!
       return SPDR;
