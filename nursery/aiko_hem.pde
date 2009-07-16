@@ -12,7 +12,7 @@
  *
  * To Do
  * ~~~~~
- * - Handle "(controllerName= name)", where "name" greater than 16 characters.
+ * - Handle "(nodeName= name)", where "name" greater than 16 characters.
  * - Complete serialHandler() communications.
  * - Think about what happens when reusing "SExpressionArray commandArray" ?
  * - Implement: addCommandHandler() and removeCommandHandler().
@@ -29,28 +29,30 @@
 
 using namespace Aiko;
 
+#define DEFAULT_NODE_NAME "default"
+
 // Analogue Input pins
-#define PIN_LIGHT_SENSOR    5
+#define PIN_LIGHT_SENSOR    0
 
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
 #define PIN_SERIAL_TX       1
-#define PIN_LCD_CLOCK       2 // CD4094 8-bit shift/latch
-#define PIN_LCD_DATA        4 // CD4094 8-bit shift/latch
-#define PIN_LCD_STROBE      7 // CD4094 8-bit shift/latch
+#define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
+#define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
+#define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
 #define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
-#define PIN_RELAY          11 // PWM output (timer 2)
-#define PIN_ONE_WIRE       12 // OneWire or CANBus
+#define PIN_RELAY           6 // PWM output (timer 2)
+#define PIN_ONE_WIRE        5 // OneWire or CANBus
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
 
 void (*commandHandlers[])() = {
-  controllerNameCommand,
+  nodeNameCommand,
   relayCommand,
   resetClockCommand
 };
 
 char* commands[] = {
-  "controllerName=",
+  "nodeName=",
   "relay=",
   "resetClock"
 };
@@ -67,7 +69,7 @@ void setup() {
   Events.addHandler(serialHandler,              10);
   Events.addHandler(blinkHandler,             1000);
   Events.addHandler(clockHandler,             1000);
-  Events.addHandler(controllerHandler,        1000);
+  Events.addHandler(nodeHandler,              1000);
   Events.addHandler(lcdHandler,               1000);
   Events.addHandler(temperatureSensorHandler, 1000);
   Events.addHandler(lightSensorHandler,       1000);
@@ -118,24 +120,24 @@ void resetClockCommand(void) {
 
 /* -------------------------------------------------------------------------- */
 
-char controllerName[16] = "default";
+char nodeName[16] = DEFAULT_NODE_NAME;
 
-void controllerHandler(void) {
-  Serial.print("(controllerName= ");
-  Serial.print(controllerName);
+void nodeHandler(void) {
+  Serial.print("(nodeName= ");
+  Serial.print(nodeName);
   Serial.println(")");
 }
 
-void controllerNameCommand(void) {
+void nodeNameCommand(void) {
   char* parameterString = parameter.head();
 
-  for (byte index = 0; index < sizeof(controllerName); index ++) {
+  for (byte index = 0; index < sizeof(nodeName); index ++) {
     if (index == parameter.size()) {
-      controllerName[index] = '\0';
+      nodeName[index] = '\0';
       break;
     }
 
-    controllerName[index] = *parameterString ++;
+    nodeName[index] = *parameterString ++;
   }
 }
 
@@ -146,7 +148,7 @@ int lightValue = 0;
 void lightSensorHandler(void) {
   lightValue = analogRead(PIN_LIGHT_SENSOR);
 
-  Serial.print("(light= ");
+  Serial.print("(lux= ");
   Serial.print(lightValue);
   Serial.println(")");
 }
