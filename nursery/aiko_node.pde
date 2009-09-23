@@ -1,25 +1,29 @@
-/* aiko_hem.pde
- * ~~~~~~~~~~~~
+/* aiko_node.pde
+ * ~~~~~~~~~~~~~
  * Please do not remove the following notices.
  * Copyright (c) 2009 by Geekscape Pty. Ltd.
  * Documentation:  http://geekscape.org/static/arduino.html
  * License: GPLv3. http://geekscape.org/static/arduino_license.html
- * Version: 0.0
+ * Version: 0.1
  *
- * Prototype Home Energy Monitor API client.
- * Currently requires a Residential Gateway (indirect mode only).
- * See http://smartenergygroups.com/faq
+ * Prototype "Watch My Thing" device.
+ * Currently requires an Aiko Gateway (indirect mode only).
+ * See http://watchmything.com/faq
  *
  * To Do
  * ~~~~~
- * - Handle "(nodeName= name)", where "name" greater than 16 characters.
+ * - Fix temperature data acquisition should work every time, not every second time !
+ * - Save and restore configuration from EEPROM.
+ * - Handle "(node= name)", where "name" greater than 16 characters.
  * - Complete serialHandler() communications.
  * - Think about what happens when reusing "SExpressionArray commandArray" ?
  * - Implement: addCommandHandler() and removeCommandHandler().
- * - Implement: (displayTitle= STRING) --> LCD position (0,0)
- * - Implement: (deviceUpdate NAME VALUE UNIT) or (NAME= VALUE)
+ * - Implement: (update_rate SECONDS UNIT)
+ * - Implement: (error on) (error off)
+ * - Implement: (display_title= STRING) --> LCD position (0,0)
+ * - Implement: (device_update NAME VALUE UNIT) or (NAME= VALUE)
  * - Implement: (profile)
- * - Implement: (clock= hh:mm:ss)
+ * - Implement: (clock yyyy-mm-ddThh:mm:ss)
  * - Improve error handling.
  */
 
@@ -29,7 +33,7 @@
 
 using namespace Aiko;
 
-#define DEFAULT_NODE_NAME "default"
+#define DEFAULT_NODE_NAME "pebble_1"
 
 // Analogue Input pins
 #define PIN_LIGHT_SENSOR    0
@@ -42,19 +46,20 @@ using namespace Aiko;
 #define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
 #define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
 #define PIN_RELAY           6 // PWM output (timer 2)
+#define PIN_SPEAKER         9 // Speaker output
 #define PIN_ONE_WIRE        5 // OneWire or CANBus
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
 
 void (*commandHandlers[])() = {
-  nodeNameCommand,
+  nodeCommand,
   relayCommand,
   resetClockCommand
 };
 
 char* commands[] = {
-  "nodeName=",
-  "relay=",
-  "resetClock"
+  "node=",
+  "relay",
+  "reset_clock"
 };
 
 byte commandCount = sizeof(commands) / sizeof(*commands);
@@ -66,13 +71,13 @@ SExpression parameter;
 void setup() {
   Serial.begin(115200);
 
-  Events.addHandler(serialHandler,              10);
-  Events.addHandler(blinkHandler,             1000);
-  Events.addHandler(clockHandler,             1000);
-  Events.addHandler(nodeHandler,              1000);
-  Events.addHandler(lcdHandler,               1000);
-  Events.addHandler(temperatureSensorHandler, 1000);
-  Events.addHandler(lightSensorHandler,       1000);
+  Events.addHandler(serialHandler,               10);
+  Events.addHandler(blinkHandler,              1000);
+  Events.addHandler(clockHandler,              1000);
+  Events.addHandler(lcdHandler,                1000);
+  Events.addHandler(nodeHandler,               1000);
+  Events.addHandler(lightSensorHandler,        1000);
+  Events.addHandler(temperatureSensorHandler,  1000);
 }
 
 void loop() {
@@ -120,15 +125,15 @@ void resetClockCommand(void) {
 
 /* -------------------------------------------------------------------------- */
 
-char nodeName[16] = DEFAULT_NODE_NAME;
+char nodeName[40] = DEFAULT_NODE_NAME;
 
 void nodeHandler(void) {
-  Serial.print("(nodeName= ");
+  Serial.print("(node ");
   Serial.print(nodeName);
   Serial.println(")");
 }
 
-void nodeNameCommand(void) {
+void nodeCommand(void) {
   char* parameterString = parameter.head();
 
   for (byte index = 0; index < sizeof(nodeName); index ++) {
@@ -148,9 +153,9 @@ int lightValue = 0;
 void lightSensorHandler(void) {
   lightValue = analogRead(PIN_LIGHT_SENSOR);
 
-  Serial.print("(lux= ");
+  Serial.print("(light_lux ");
   Serial.print(lightValue);
-  Serial.println(")");
+  Serial.println(" lux)");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -245,13 +250,13 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
     temperature_whole    = tc_100 / 100;
     temperature_fraction = tc_100 % 100;
 
-    Serial.print("(temperature= ");
+    Serial.print("(temperature ");
     if (signBit) Serial.print("-");
     Serial.print(temperature_whole);
     Serial.print(".");
     if (temperature_fraction < 10) Serial.print("0");
     Serial.print(temperature_fraction);
-    Serial.println(")");
+    Serial.println(" C)");
   }
 
   // Start temperature conversion with parasitic power
@@ -268,7 +273,8 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
 byte relayInitialized = false;
 
 void relayInitialize(void) {
-  pinMode(PIN_RELAY, OUTPUT);
+  pinMode(PIN_RELAY,   OUTPUT);
+  pinMode(PIN_SPEAKER, OUTPUT);
 
   relayInitialized = true;
 }
@@ -278,12 +284,55 @@ void relayCommand(void) {
 
   if (parameter.isEqualTo("on")) {
     digitalWrite(PIN_RELAY, HIGH);
+    playTune();
   }
   else if (parameter.isEqualTo("off")) {
     digitalWrite(PIN_RELAY, LOW);
   }
   else {
-    Serial.println("(error parameterInvalid)");
+//  Serial.println("(error parameterInvalid)");
+  }
+}
+
+int length = 5; // the number of notes
+char notes[] = "bCacd "; // a space represents a rest
+int beats[] = { 1, 1, 1, 1, 2 };
+int tempo = 300;
+
+void playTune() {
+  for (int i = 0; i < length; i++) {
+    if (notes[i] == ' ') {
+      delay(beats[i] * tempo); // rest
+    }
+    else {
+      playNote(notes[i], beats[i] * tempo);
+    }
+
+    delay(tempo / 2);  // pause between notes
+  }
+}
+
+void playNote(
+  char note,
+  int duration) {
+
+  char names[] = {  'c',  'd',  'e',  'f',  'g',  'a',  'b', 'C' };
+  int  tones[] = { 1915, 1700, 1519, 1432, 1275, 1136, 1014, 956 };
+  
+  // play the tone corresponding to the note name
+  for (int i = 0; i < 8; i++) {
+    if (names[i] == note) {
+      playTone(tones[i], duration);
+    }
+  }
+}
+
+void playTone(int tone, int duration) {
+  for (long i = 0; i < duration * 1000L; i += tone * 2) {
+    digitalWrite(PIN_SPEAKER, HIGH);
+    delayMicroseconds(tone);
+    digitalWrite(PIN_SPEAKER, LOW);
+    delayMicroseconds(tone);
   }
 }
 
@@ -504,7 +553,7 @@ void serialHandler(void) {
   if (count == 0) {
     if (length > 0) {
       if (timeNow > timeOut) {
-        Serial.println("(error timeout)");
+//      Serial.println("(error timeout)");
         length = 0;
       }
     }
@@ -519,7 +568,7 @@ void serialHandler(void) {
       char ch = Serial.read();
 
       if (length >= (sizeof(buffer) / sizeof(*buffer))) {
-        Serial.println("(error bufferOverflow)");
+//      Serial.println("(error bufferOverflow)");
         length = 0;
       }
       else if (ch == '\n'  ||  ch == ';') {
@@ -538,7 +587,7 @@ void serialHandler(void) {
         while (commandIndex < commandCount) {
           if (commandArray[0].isEqualTo(commands[commandIndex])) {
             if (parameterCount[commandIndex] != (commandArray.length() - 1)) {
-              Serial.println("(error parameterCount)");
+//            Serial.println("(error parameterCount)");
             }
             else {  // execute command
               if (parameterCount[commandIndex] > 0) parameter = commandArray[1];
@@ -550,7 +599,7 @@ void serialHandler(void) {
           commandIndex ++;
         }
 
-        if (commandIndex >= commandCount) Serial.println("(error unknownCommand)");
+//      if (commandIndex >= commandCount) Serial.println("(error unknownCommand)");
 
         length = 0;
       }
