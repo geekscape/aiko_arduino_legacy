@@ -12,7 +12,9 @@
  *
  * To Do
  * ~~~~~
+ * - Default baud rate 38,400 and auto-baud to 115,200.
  * - Fix temperature data acquisition should work every time, not every second time !
+ * - Temperature sensor won't need 750 ms, if using permanent 5 VDC.
  * - Save and restore configuration from EEPROM.
  * - Handle "(node= name)", where "name" greater than 16 characters.
  * - Complete serialHandler() communications.
@@ -33,33 +35,72 @@
 
 using namespace Aiko;
 
+#define IS_GATEWAY
+// #define IS_PEBBLE
+// #define IS_STONE
+
+#ifdef IS_GATEWAY
+#define DEFAULT_NODE_NAME "gateway_1"
+#define HAS_LCD
+#define HAS_SENSORS
+#define HAS_TOUCHPANEL
+#define PIN_LIGHT_SENSOR  4
+#endif
+
+#ifdef IS_PEBBLE
 #define DEFAULT_NODE_NAME "pebble_1"
+#define HAS_LCD
+#define LCD_4094  // Drive LCD with 4094 8-bit shift register to save Arduino pins
+#define HAS_SENSORS
+#define PIN_LIGHT_SENSOR  0
+#endif
+
+#ifdef IS_STONE
+#define DEFAULT_NODE_NAME "stone_1"
+#endif
+
+#define TRANSMIT_PERIOD 1  // seconds
 
 // Analogue Input pins
-#define PIN_LIGHT_SENSOR    0
+#define PIN_CURRENT_SENSOR  0 // Stone (electrical monitoring)
+#define PIN_VOLTAGE_SENSOR  1 // Stone (electrical monitoring)
 
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
 #define PIN_SERIAL_TX       1
-#define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
-#define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
 #define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
+#define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
+#define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
 #define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
-#define PIN_RELAY           6 // PWM output (timer 2)
 #define PIN_SPEAKER         9 // Speaker output
-#define PIN_ONE_WIRE        5 // OneWire or CANBus
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
+
+#ifdef IS_GATEWAY
+#define PIN_ONE_WIRE       10 // OneWire or CANBus
+#define PIN_RELAY          11
+#endif
+
+#ifdef IS_PEBBLE
+#define PIN_ONE_WIRE        5 // OneWire or CANBus
+#define PIN_RELAY           6 // PWM output (timer 2)
+#endif
+
+#ifdef IS_STONE
+#define PIN_RELAY           3
+#endif
 
 void (*commandHandlers[])() = {
   nodeCommand,
   relayCommand,
-  resetClockCommand
+  resetClockCommand,
+  resetLcdCommand
 };
 
 char* commands[] = {
   "node=",
   "relay",
-  "reset_clock"
+  "reset_clock",
+  "reset_lcd"
 };
 
 byte commandCount = sizeof(commands) / sizeof(*commands);
@@ -69,15 +110,32 @@ byte parameterCount[] = { 1, 1, 0 };
 SExpression parameter;
 
 void setup() {
-  Serial.begin(115200);
+//analogReference(EXTERNAL);
 
-  Events.addHandler(serialHandler,               10);
-  Events.addHandler(blinkHandler,              1000);
-  Events.addHandler(clockHandler,              1000);
-  Events.addHandler(lcdHandler,                1000);
-  Events.addHandler(nodeHandler,               1000);
-  Events.addHandler(lightSensorHandler,        1000);
-  Events.addHandler(temperatureSensorHandler,  1000);
+//Serial.begin(115200);
+Serial.begin(38400);
+
+  Events.addHandler(serialHandler, 10);
+  Events.addHandler(blinkHandler,  1000 * TRANSMIT_PERIOD);
+  Events.addHandler(nodeHandler,   1000 * TRANSMIT_PERIOD);
+
+#ifdef HAS_LCD
+  Events.addHandler(clockHandler,  1000);
+  Events.addHandler(lcdHandler,    1000);
+#endif
+
+#ifdef HAS_SENSORS
+  Events.addHandler(lightSensorHandler,       1000 * TRANSMIT_PERIOD);
+  Events.addHandler(temperatureSensorHandler, 1000 * TRANSMIT_PERIOD);
+#endif
+
+#ifdef HAS_TOUCHPANEL
+  Events.addHandler(touchPanelHandler, 50);
+#endif
+
+#ifdef IS_STONE
+  Events.addHandler(currentSensorHandler, 1000 * TRANSMIT_PERIOD);
+#endif
 }
 
 void loop() {
@@ -113,7 +171,7 @@ void clockHandler(void) {
     second = 0;
     if ((++ minute) == 60) {
       minute = 0;
-      if ((++ hour) == 99) hour = 0;  // Max: 99 hours, 59 minutes, 59 seconds
+      if ((++ hour) == 100) hour = 0;  // Max: 99 hours, 59 minutes, 59 seconds
     }
   }
 }
@@ -283,11 +341,11 @@ void relayCommand(void) {
   if (relayInitialized == false) relayInitialize();
 
   if (parameter.isEqualTo("on")) {
-    digitalWrite(PIN_RELAY, HIGH);
-    playTune();
+    digitalWrite(PIN_RELAY, HIGH);  Serial.println("(relay is on)");
+//  playTune();
   }
   else if (parameter.isEqualTo("off")) {
-    digitalWrite(PIN_RELAY, LOW);
+    digitalWrite(PIN_RELAY, LOW);  Serial.println("(relay is off)");
   }
   else {
 //  Serial.println("(error parameterInvalid)");
@@ -346,12 +404,12 @@ void playTone(int tone, int duration) {
  *
  *   +--------------------------------------------+
  *   |    Arduino (ATMega 168 or 328)             |
- *   |    D02           D04           D07         |
+ *   |    D02           D03           D04         |
  *   +----+-------------+-------------+-----------+
- *        |4            |6            |13
- *        |3            |2            |1
+ *        |4            |5            |6
+ *        |1            |2            |3
  *   +----+-------------+-------------+-----------+
- *   |    Clock         Data          Strobe      |
+ *   |    Strobe        Data          Clock       |
  *   |    MC14094 8-bit shift/latch register      |
  *   |    Q8   Q7   Q6   Q5   Q4   Q3   Q2   Q1   |
  *   +----+----+----+----+----+----+----+----+----+
@@ -363,6 +421,14 @@ void playTone(int tone, int duration) {
  *   +--------------------------------------------+
  */
 
+byte lcdInitialized = false;
+
+void resetLcdCommand(void) {
+  lcdInitialized = false;
+// Serial.println("resetLcdCommand()");
+}
+
+#ifdef LCD_4094
 // LCD pin bit-patterns, output from MC14094 -> LCD KS0066 input
 #define LCD_ENABLE_HIGH 0x10  // MC14094 Q4 -> LCD E
 #define LCD_ENABLE_LOW  0xEF  //   Enable (high) / Disable (low)
@@ -389,8 +455,6 @@ byte lcdSetup[] = {         // LCD command, delay time in milliseconds
   LCD_COMMAND_CLEAR,         2,  // clear display
   LCD_COMMAND_ENTRY_SET,     1   // increment mode, display shift off
 };
-
-byte lcdInitialized = false;
 
 void lcdInitialize(void) {
   pinMode(PIN_LCD_CLOCK,  OUTPUT);
@@ -451,7 +515,42 @@ void lcdWriteString(
 
   while (*message) lcdWrite((*message ++), true);
 }
+#else
+#include <LiquidCrystal.h>
 
+LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
+
+void lcdInitialize(void) {
+  lcdInitialized = true;
+
+  lcd.begin(16, 2);
+  lcd.noCursor();
+}
+
+void lcdClear() {
+  lcd.clear();
+}
+
+void lcdPosition(
+  byte row,        // Must be either 0 (first row) or 1 (second row)
+  byte column) {   // Must be between 0 and 15
+
+  lcd.setCursor(column, row);
+}
+
+void lcdWrite(
+  byte value,
+  byte dataFlag) {
+
+  lcd.print(value);
+}
+    
+void lcdWriteString(
+  char message[]) {
+
+  lcd.print(message);
+}    
+#endif
 // checks out how many digits there are in a number
 
 int estimateDigits(int nr) {
@@ -505,11 +604,11 @@ void lcdWriteNumber(int nr) {
 void lcdHandler(void) {
   if (lcdInitialized == false) {
     lcdInitialize();
-
     lcdClear();
+    lcdWriteString("Aiko");
   }
 
-  lcdPosition(0, 0);
+  lcdPosition(0, 8);
   if (hour < 10) lcdWriteString("0");
   lcdWriteNumber((int) hour);
   lcdWriteString(":");
@@ -611,5 +710,188 @@ void serialHandler(void) {
     timeOut = timeNow + 5000;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+
+#ifdef HAS_TOUCHPANEL
+
+// Taken from http://kousaku-kousaku.blogspot.com/2008/08/arduino_24.html
+#ifdef MEGA
+#define ANALOG_OFFSET 54
+#else
+#define ANALOG_OFFSET 14
+#endif
+
+#define xLowAnalog  0
+#define xLow       (xLowAnalog + ANALOG_OFFSET)
+#define xHigh      (2 + ANALOG_OFFSET)
+#define yLowAnalog  3
+#define yLow       (yLowAnalog + ANALOG_OFFSET)
+#define yHigh      (1 + ANALOG_OFFSET)
+#endif
+
+void touchPanelHandler() {
+  pinMode(xLow,OUTPUT);
+  pinMode(xHigh,OUTPUT);
+  digitalWrite(xLow,LOW);
+  digitalWrite(xHigh,HIGH);
+
+  digitalWrite(yLow,LOW);
+  digitalWrite(yHigh,LOW);
+
+  pinMode(yLow,INPUT);
+  pinMode(yHigh,INPUT);
+//delay(10);
+
+  // xLow has analog port -14 !!
+  int x = analogRead(yLowAnalog);
+ 
+  pinMode(yLow,OUTPUT);
+  pinMode(yHigh,OUTPUT);
+  digitalWrite(yLow,LOW);
+  digitalWrite(yHigh,HIGH);
+
+  digitalWrite(xLow,LOW);
+  digitalWrite(xHigh,LOW);
+
+  pinMode(xLow,INPUT);
+  pinMode(xHigh,INPUT);
+//delay(10);
+
+  // yLow has analog port -14 !!
+  int y = analogRead(xLowAnalog);
+
+  lcdPosition(1, 0);
+
+  if  (x > 99  &&  y > 99) {
+    lcdWriteNumber(x);
+    lcdWriteString(",");
+    lcdWriteNumber(y);
+    lcdWriteString(" ");
+
+         if (touch(x, y, 160, 410, 815, 920)) lcdWriteString("Menu    ");
+    else if (touch(x, y, 575, 825, 815, 920)) lcdWriteString("View    ");
+    else if (touch(x, y, 160, 410, 590, 700)) lcdWriteString("Off     ");
+    else if (touch(x, y, 575, 825, 590, 700)) lcdWriteString("On      ");
+    else if (touch(x, y, 160, 299, 340, 470)) lcdWriteString("0 %     ");
+    else if (touch(x, y, 685, 825, 340, 470)) lcdWriteString("100 %   ");
+    else if (touch(x, y, 160, 410, 110, 240)) lcdWriteString("Cancel  ");
+    else if (touch(x, y, 575, 825, 110, 240)) lcdWriteString("Enter   ");
+    else if (touch(x, y, 300, 685, 340, 470)) {
+      lcdWriteNumber(((x - 300l) * 100l) / (685l - 300l));
+      lcdWriteString(" %    ");
+    }
+    else lcdWriteString("        ");
+  }
+}
+
+int touch(
+  int x, int y, int xMin, int xMax, int yMin, int yMax) {
+
+  return(x >= xMin  &&  x <= xMax  &&  y >= yMin  &&  y <= yMax);
+}
+
+/* -------------------------------------------------------------------------- */
+
+#ifdef IS_STONE
+byte currentSensorInitialized = false;
+
+#define CURRENT_SIZE   10
+#define SAMPLE_SIZE  5000
+
+float current_average[CURRENT_SIZE];
+int   current_index = 0;
+
+void currentSensorInitialize(void) {
+  currentSensorInitialized = true;
+
+  for (int index = 0;  index < CURRENT_SIZE;  index ++) {
+    current_average[index] = 0.0;
+  }
+}
+
+void currentSensorHandler(void) {
+  if (currentSensorInitialized == false) currentSensorInitialize();
+
+  long raw_average = 0;
+  int  raw_minimum = 2048;
+  int  raw_maximum = 0;
+  int  sample;
+//int  samples[SAMPLE_SIZE];
+  long timer;
+//long timer[SAMPLE_SIZE];
+
+  float rms_current = 0.0;
+  float runtime_average = 0.0;
+
+  for (int index = 0;  index < SAMPLE_SIZE;  index ++) {
+    timer = micros();
+//  timer[index] = micros();
+    sample = analogRead(PIN_CURRENT_SENSOR);
+//  samples[index] = sample;
+    if (sample < raw_minimum) raw_minimum = sample;
+    if (sample > raw_maximum) raw_maximum = sample;
+
+    // Should dynamically use average, replace hard-coded "537"!
+    rms_current = rms_current + sq((float) (sample - 537));
+    raw_average = raw_average + sample;
+
+    delayMicroseconds(200 - micros() + timer - 8);
+  }
+/*
+  for (int index = 0;  index < SAMPLE_SIZE;  index ++) {
+    Serial.print(samples[index]);
+    Serial.print(",");
+    Serial.println(timer[index] - timer[0]);
+  }
+ */
+
+  rms_current = sqrt(rms_current / (SAMPLE_SIZE));
+  raw_average = raw_average / SAMPLE_SIZE;
+/*
+  Serial.println("----------");
+  Serial.print("RMS current (pre-correction): ");
+  Serial.println(rms_current);
+ */
+  // Hard-coded correction factor, replace "32.6" :(
+  float correction_factor = 32.6;
+  if (rms_current < 30.00) correction_factor = 34.09;
+  rms_current = rms_current / correction_factor;
+
+  current_average[current_index] = rms_current;
+  current_index = (current_index + 1) % CURRENT_SIZE;
+
+  for (int index = 0;  index < CURRENT_SIZE;  index ++) {
+    runtime_average = runtime_average + current_average[index];
+  }
+
+  runtime_average = runtime_average / CURRENT_SIZE;
+
+  int watts = rms_current * 248;
+  if (watts < 70) watts = 0;
+
+  Serial.print("(power ");
+  Serial.print(watts);
+  Serial.println(" W)");
+/*
+  Serial.println("----------");
+  Serial.print("Raw average: ");
+  Serial.println(raw_average);
+  Serial.print("Raw minimum: ");
+  Serial.println(raw_minimum);
+  Serial.print("Raw maximum: ");
+  Serial.println(raw_maximum);
+
+  Serial.print("RMS Current: ");
+  Serial.println(rms_current);
+
+  // Assume Power Factor of 1.0 for the moment
+  Serial.print("Power (watts): ");
+  Serial.println(watts);
+  Serial.print("RMS Current (run-time average): ");
+  Serial.println(runtime_average);
+ */
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
