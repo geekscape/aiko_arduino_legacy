@@ -1,10 +1,32 @@
 #!/usr/bin/lua
--- --------------------------------------------------------------- --
--- See Google Docs: "Project: Aiko: Stream protocol specification" --
--- --------------------------------------------------------------- --
+-- ------------------------------------------------------------------------- --
+-- aiko_gateway.lua
+-- ~~~~~~~~~~~~~~~~
+-- Please do not remove the following notices.
+-- Copyright (c) 2009 by Geekscape Pty. Ltd.
+-- Documentation:  http://groups.google.com/group/aiko-platform
+-- License: GPLv3. http://geekscape.org/static/arduino_license.html
+-- Version: 0.2
+-- ------------------------------------------------------------------------- --
+-- See Google Docs: "Project: Aiko: Stream protocol specification"
+-- Currently requires an Aiko Gateway (indirect mode only).
+-- ------------------------------------------------------------------------- --
 
 -- ToDo: Aiko Gateway
 -- ~~~~~~~~~~~~~~~~~~
+-- - Put protocol version into boot message to Aiko-Node and web service.
+-- - Verify protocol version in the Aiko-Node boot message.
+
+-- - Configuration in separate Lua script file.
+-- - Re-open serial network port 2000, if it closes.
+-- - Listen on socket for commands to Aiko-Gateway.
+-- - Migrate Twitter LED sign support to Aiko-Node.
+-- - Support Aiko-Gateway router and Arduino as a "single" node.
+--   - "eek_1" consists of "eek_1.gateway" and "eek_1.node".
+-- - Deliver commands from web server to specific Aiko-Nodes.
+-- - Aiko-Gateway I/O commands for display, alert, view, menu, etc.
+
+-- - Does "http" variable need to be local, or can it be global ?
 -- - Start using XPlanner !
 -- * Unit test S-Expressions using "curl" !
 -- * Transmit dummy test S-Expressions to http://watchmything.com.
@@ -13,11 +35,12 @@
 -- * Wrap messages with "(site SITE_TOKEN ...)".
 -- - Create aiko_gateway.sh, setting environment variables and background run.
 -- - Put all configuration parameters into a table.
--- - Change "message" from being global, to being passed as a parameter.
 -- - Command line options: Host/Port, Help and Version.
 -- - Handle multiple connected AikoNodes, e.g. Ethernet and ZigBee.
 -- - Lua / Lua-Socket co-routines for non-blocking I/O.
 -- - Parse S-Expression messages, match open-close brackets (as per Aiko in C).
+--   - Use LPeg (Parsing Expression Grammars For Lua) ?
+--     See http://www.inf.puc-rio.br/~roberto/lpeg
 -- - Maintain last message timestamp for idempotent message check.
 -- - Transmit dummy test S-Expressions to http://geekscape.org (Play!, JAX-RS).
 -- - LuCI web server integration, e.g. monitor, control, configure, statistics.
@@ -28,12 +51,20 @@
 -- - Implement JSON-RPC client (for WatchMyThing.com) and server (for AikoJ).
 -- - Investigate using XMPP.
 -- - Handle some messages from Aiko, e.g. errors, provide date/time.
+-- - Handle "debug messages" from Aiko-Node, e.g. "; Lisp comment :)"
+
+-- (status okay)
+-- (status error "message")
+-- (node pebble_1 2009-09-23T16:00:00 (relay true nil))
+-- (node pebble_2 2009-09-23T16:00:00 (relay false nil))
+-- (node pebble_2 2009-09-23T16:00:00 (display "Message string"))
 
 -- ToDo: Aiko Node
 -- ~~~~~~~~~~~~~~~
 -- - Start using XPlanner !
 -- * New S-Expression message format.
 --   - Idempotent: Using TimeStamp or ?unique_number (boot count in EEPROM ?).
+-- - Send "debug messages" as "; Lisp comments :)"
 -- - Ignore OpenWRT boot messages and wait for Ser2Net start message.
 -- - Implement "(http on)" and "(http off)" to enable HTTP headers.
 -- - Implement "(error on)" and "(error off)" to enable error messages.
@@ -52,7 +83,6 @@
 --   - (profile= PROFILE-NAME)
 --   - (schedule= SCHEDULE) --> EEPROM.
 --   - (serial_number= SERIAL_NUMBER) --> EEPROM.
--- - Nintendo TouchPanel for ASUS-WL500G.
 -- - Create Google Doc: Project: Aiko: Sub-system design.
 
 -- ToDo: Miscellaneous
@@ -85,17 +115,20 @@
 
 -- HowTo: Using the JSON-RPC API
 -- http://luci.freifunk-halle.net/Documentation/JsonRpcHowTo
+
+-- LPeg (Parsing Expression Grammars For Lua)
+-- http://www.inf.puc-rio.br/~roberto/lpeg
 -- ------------------------------------------------------------------------- --
 
 -- TODO: Move functions into a library file -- dofile(FILENAME) or require() ?
 
-function currentdir()
+function current_directory()
   return(os.getenv("PWD"))
 end
 
 -- ------------------------------------------------------------------------- --
 
-function isProduction()
+function is_production()
 -- TODO: Use an environment variable to specify deployment type.
 
   return(os.getenv("USER") == "root") -- Assume logged in as "root" on OpenWRT
@@ -103,14 +136,14 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-function tableToString(table)
+function table_to_string(table)
   local result = ''
 
   if (type(table) == 'table') then
     result = '{ '
 
     for index = 1, #table do
-      result = result .. tableToString(table[index])
+      result = result .. table_to_string(table[index])
       if (index ~= #table) then
         result = result .. ', '
       end
@@ -126,13 +159,26 @@ end
 
 -- ------------------------------------------------------------------------- --
 
+function url_encode(value)
+  if (value) then
+    value = value:gsub("\n", "\r\n")
+    value = value:gsub("([^%w ])",
+      function (c) return string.format ("%%%02X", string.byte(c)) end)
+    value = value:gsub(" ", "+")
+  end
+
+  return(value)
+end
+
+-- ------------------------------------------------------------------------- --
+
 function use_production_server()
---local web_host_name = "api.smartenergygroups.com"
-  local web_host_name = "api.watchmything.com"
+  local web_host_name = "api.smartenergygroups.com"
+--local web_host_name = "api.watchmything.com"
 
   url = "http://" .. web_host_name .. "/api_sites/stream"
 
-  file_name = currentdir() .. "/data/aiko_test1.data"
+  file_name = current_directory() .. "/data/aiko_test1.data"
 
   method       = "PUT"
   content_type = "application/x-www-form-urlencoded"
@@ -146,7 +192,7 @@ function use_development_server()
 
   url = "http://" .. web_host_name .. "/meemplex/rest/device/"
 
-  file_name = currentdir() .. "/data/aiko_test2.data"
+  file_name = current_directory() .. "/data/aiko_test2.data"
 
   method       = "POST"
   content_type = "application/xml"
@@ -162,8 +208,21 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-function send_message()
+function custom_sink()
+  return function(chunk, error)
+    if (not chunk) then
+      return(1)
+    else
+      return(print(chunk))
+    end
+  end
+end
+
+-- ------------------------------------------------------------------------- --
+
+function send_message(message)
   local http = require("socket.http")
+  local response = {}
 
   if (debug) then print("-- send_message(): start") end
 
@@ -179,19 +238,64 @@ function send_message()
 --  source = ltn12.source.file(io.open(file_name, "r")),
     source = ltn12.source.string(message),
 --  sink = ltn12.sink.file(io.stdout)
+    sink = ltn12.sink.table(response)
+--  sink = custom_sink()
   }
-
--- TODO: This code doesn't run if http.request(sink=) specified ?
 
   if (body == nil) then
     print("Error: ", code)
   else
     if (debug) then
 -- TODO: Check status code for success or failure
---    print("Response: ", body)  -- Will equal "1", if generic method is used
---    print("Code:     ", code)
---    print("Headers:  ", tableToString(headers))
---    print("Status:   ", status)
+      print("Body:     ", body)  -- Will equal "1", if generic method is used
+      print("Code:     ", code)
+      print("Headers:  ", table_to_string(headers))
+      print("Status:   ", status)
+      print("Response: ", table_to_string(response))
+    end
+  end
+
+  if (response == nil) then
+    print("Error: No HTTP response body")
+  else
+    response = table.concat(response)
+
+    if (response:sub(1, 6) == "(node ") then
+      if (debug) then print("-- send_message(): command received") end
+
+      local start, finish = response:find("\n", 1, PLAIN)
+      local message = response:sub(1, start - 1)
+      response = response:sub(finish + 1)
+      local command = nil
+
+-- message = "(display \"Hello, world !\" nil)" -- Test display command
+-- message = "(relay true nil)"                 -- Test relay command
+
+      start, finish = message:find("(display ", 1, PLAIN)
+      if (start ~= nil) then
+        start, finish = message:find("\"", start, PLAIN)
+        finish = message:find("\"", start + 1, PLAIN)
+        local buffer = message:sub(start + 1, finish - 1)
+        command = "(display \"" .. buffer .. "\")"
+      end
+
+      start, finish = message:find("(relay ", 1, PLAIN)
+      if (start ~= nil) then
+        local state = "off"
+        if (message:find("true", start, PLAIN)) then state = "on" end
+        command = "(relay " .. state .. ")"
+      end
+
+      if (command) then
+        if (debug) then print("-- send message(): command: ", command) end
+        serial_client:send(command .. ";\n")
+      end
+    end
+
+    if (response == "(status okay)") then
+      if (debug) then print("-- send_message(): status: okay") end
+    else
+      print("Error: HTTP response: ", response)
     end
   end
 
@@ -204,8 +308,7 @@ function send_event_boot(node_name)
   if (debug) then print("-- send_event_boot(): " .. node_name) end
 
   message = "(boot_event 0 number)"
-  wrap_message(node_name)
-  send_message()
+  send_message(wrap_message(message, node_name))
 end
 
 -- ------------------------------------------------------------------------- --
@@ -214,8 +317,7 @@ function send_event_heartbeat(node_name)
   if (debug) then print("-- send_event_heartbeat(): " .. node_name) end
 
   message = "(cpu_usage 5 %) (node_count 1 number)"
-  wrap_message(node_name)
-  send_message()
+  send_message(wrap_message(message, node_name))
 end
 
 -- ------------------------------------------------------------------------- --
@@ -225,44 +327,48 @@ function send_file(node_name, file_name)
 
   file = io.input(file_name)
   message = io.read("*all")
-  wrap_message(node_name)
-  send_message()
+  send_message(wrap_message(message, node_name))
 end
 
 -- ------------------------------------------------------------------------- --
 
-function wrap_message(node_name)
--- TODO: Global variable "message" should be a parameter.
-
+function wrap_message(message, node_name)
   local timestamp = "?"
 
-  message =
+  return(
     "data_post=" ..
     "(site " .. site_token ..
     "  (node " .. node_name .. " " .. timestamp ..
     "    " .. message .. "))"
+  )
 end
 
 -- ------------------------------------------------------------------------- --
 
 function serial_handler()
-  local client = socket.connect(aiko_gateway_address, 2000)
-  client:settimeout(5.0)  -- settimeout(0) --> non-blocking read
+  serial_client = socket.connect(aiko_gateway_address, 2000)
+  serial_client:settimeout(serial_timeout_period)  -- 0 --> non-blocking read
 
---client:send("")
+--serial_client:send("")
 
   local stream, status, partial
 
   while (status ~= "closed") do
-    stream, status, partial = client:receive(16768)  -- (1024)
+    stream, status, partial = serial_client:receive(16768)  -- (1024)
 
-    if (debug) then print ("Aiko status:  ", status) end
+    if (debug) then
+      if (status == "timeout") then
+        print("Aiko status: bytes received: ", partial:len())
+      else
+        print("Aiko status: ", status)
+      end
+    end
 --[[
     print ("Aiko stream:  ", stream)  -- TODO: if not "nil" then catenate
     print ("Aiko partial: ", partial) -- TODO: if not "nil" then got everything
 ]]
-    if (partial ~= nil and string.len(partial) > 0) then
-      read_message(partial)
+    if (partial ~= nil and partial:len() > 0) then
+      parse_message(partial)
     end
 
     if (status == "timeout") then
@@ -270,88 +376,298 @@ function serial_handler()
     end
   end
 
-  client:close()
+  serial_client:close()
 end
 
 -- ------------------------------------------------------------------------- --
 
 -- TODO: Move parser into a library file.
 
-NULL  = '0x00'  -- Null character
-STX   = '0x02'  -- Start of TeXt
-ETX   = '0x03'  -- End of TeXt
-HT    = '0x09'  -- Horizontal Tab
-LF    = '0x10'  -- Line Feed
-CR    = '0x13'  -- Carriage Return
-SPACE = '0x20'  -- Space bar
-LBRAC = '0x28'  -- Left bracket '('
-RBRAC = '0x29'  -- Right bracket ')'
-
 -- TODO: Need to assume that we won't get a complete, well-formed message !
+-- TODO: Check for partial messages and catenat them, if necessary
+-- TODO: Any left-over data (no trailing CR) should be kept for next time !
 -- TODO: Implement incomplete message timeout
 
-function read_message(buffer)
-  if (debug) then print("-- read_message(): start") end
+function parse_message(buffer)
+  if (debug) then print("-- parse_message(): start") end
 
--- TODO: Check for partial messages and catenat them, if necessary
+-- Parse individual Aiko-Node messages, delimited by "carriage return"
+  for message in buffer:gmatch("[^\r\n]+") do
 
-  local position = 1
+-- Check message properly framed, e.g. (message)
+    if (message:sub(1, 1) ~= "("  or  message:sub(-1) ~= ")") then
+      print("-- parse_message(): ERROR: Message not delimited by ()")
+      if (debug) then print("-- message: ", message) end
+    else
 
-  if (string.sub(buffer, position, 6) == "(node ") then
-    start, finish = string.find(buffer, ')', 7, 1)
-
-    if (start ~= nil) then
-      aiko_node_name = string.sub(buffer, 7, start - 1)
-
-      if (debug) then
-        print("-- read_message(): node_name: " .. aiko_node_name)
-      end
-
-      position = finish + 2
-    end
-  end
-
-  if (position < string.len(buffer)) then
-    message = string.sub(buffer, position, string.len(buffer) - 1)
-
-    if (string.len(message) < 100) then  -- TODO: Remove nasty hack !!
-      if (aiko_node_name == "unregistered") then
-        print("-- read_message(): ERROR: aiko_node_name is 'unregistered'")
+-- Check message wrapped by node name, e..g (node name ...)
+      if (message:sub(1, 6) ~= "(node ") then
+        print("-- parse_message(): ERROR: Message doesn't start with 'node'")
+        if (debug) then print("-- message: ", message) end
       else
-        if (debug) then print("-- read_message(): message: " .. message) end
-        wrap_message(aiko_node_name)
-        send_message()
+
+-- Parse node name
+        local node_name = nil
+        local start, finish = message:find('?', 7, PLAIN)
+
+        if (start ~= nil) then
+          node_name = message:sub(7, start - 2)
+          if (debug) then print("-- parse_message(): node: " .. node_name) end
+        end
+
+        if (node_name == nil) then
+          print("-- parse_message(): ERROR: Couldn't parse node name")
+        else
+
+          local token = message:sub(finish + 1, finish + 2)
+          if (token == " )") then
+-- Node heart-beat message, ignore for the moment
+          else
+            if (token == " (") then
+-- Node message containing state update
+              message = message:sub(finish + 2, -2)
+              if (debug) then print("-- parse_message(): event: ", message) end
+
+              send_message(wrap_message(message, node_name))
+            else
+              print("-- parse_message(): ERROR: Problem after the node name")
+            end
+          end
+        end
       end
     end
   end
 
-  if (debug) then print("-- read_message(): end") end
+  if (debug) then print("-- parse_message(): end") end
+end
+
+-- ------------------------------------------------------------------------- --
+
+-- TODO: Move into a library file.
+
+-- Control Amplus LED signs
+-- See http://freezerpants.com/toledo
+
+-- if (arg[1]) then text = arg[1] end
+
+floor = math.floor
+
+function bxor(a,b)
+  local r = 0
+  for i = 0, 31 do
+    local x = a / 2 + b / 2
+    if x ~= floor (x) then
+      r = r + 2^i
+    end
+    a = floor (a / 2)
+    b = floor (b / 2)
+  end
+
+  return(r)
+end
+
+function led_sign_display(text)
+  local output = true
+
+  local id     = "00" -- Sign id: Default 00
+  local line   = "1"  -- Line to program: Default 1
+  local page   = "A"  -- Page to program: A - Z
+  local intro  = "<FE>"
+
+--  1: FA: immediate
+--  2: FB: xopen
+--  3: FC: curtain up
+--  4: FD: curtain down
+--  5: FE: scroll left
+--  6: FF: scroll right
+--  7: FG: vopen
+--  8: FH: vclose
+--  9: FI: scroll up
+-- 10: FJ: scroll down
+-- 11: FK: hold
+-- 12: FL: snow
+-- 13: FM: twinkle
+-- 14: FN: block move
+-- 15: FP: random
+-- 16: FR: cursive welcome
+  local speed    = "<MA>" -- 1:Mq, 2:Ma, 3:MQ, 4:MA (slowest to fastest)
+  local exit     = "<FE>"
+-- As per "intro", but only 1:FA through to 11:FK
+  local bell     = "" -- 0: no bell, 1:BA 0.5s, 2:BB 1.0s, 3:BC 1.5s, 4:BD 2.0s
+  local colour   = "" -- 0: no colour
+-- red:     CA
+-- orange:  CH
+-- green:   CD
+-- iorange: CN
+-- igreen:  CM
+-- ired:    CL
+-- rog:     CP
+-- gor:     CQ
+-- ryg:     CR
+-- rainbow: CS
+  local dFlag    = "" -- 0: no date, 1: KD (date)
+  local tFlag    = "" -- 0: no time, 1: KT (time)
+  local fontFlag = "<AC>"  -- 1=AC, 2=AA, 3=AB, 4=AF, 5=AD
+
+  local message = string.format("<L%s><P%s>%s%s<WC>%s%s%s%s%s%s%s",
+    line, page, intro, speed, exit, bell, colour, dFlag, tFlag, fontFlag, text)
+
+  local checksum = 0
+  for index = 1, message:len() do
+    checksum = bxor(checksum, message:byte(index))
+  end
+
+  message = string.format("<ID%s>%s%02X<E>", id, message, checksum)
+
+  if (output) then
+    if (debug) then print(message) end
+--  local serial_client = socket.connect("localhost", 2000)
+    serial_client:send(message .. "\n")
+--  serial_client:close()
+  end
+end
+
+-- link()
+-- message = string.format("<TA>00010100009912302359%s", "ABCD")
+-- message = strong.format("<ID%s>%s%s<E>", id, message, checksum)
+
+-- ------------------------------------------------------------------------- --
+
+-- TODO: Move into a library file.
+
+-- http://apiwiki.twitter.com/Twitter-Search-API-Method%3A-search
+--
+-- http://it-box.blogturk.net/2009/01/08/how-to-hack-twitter-with-a-few-lines-of-lua-code
+
+function twitter_query()
+  require("json")
+
+  local http = require("socket.http")
+  local request = "http://search.twitter.com/search.json?q=%s&since_id=%s&rpp=10"
+  local throttle_counter = 1     -- Always start with a Twitter query
+
+  while (true) do
+    print("-- twitter_query(): TIMER")
+    throttle_counter = throttle_counter - 1
+
+    if (throttle_counter <= 0) then
+      throttle_counter = twitter_throttle
+
+      local relay_state = false  -- TODO: Cache this, reduce messages
+      command = "(relay off)"    -- TODO: Don't need to send this every time !
+      if (debug) then print("-- send message(): command: ", command) end
+--    serial_client:send(command .. ";\n")
+
+      print("-- twitter_query(): QUERY: ", twitter_search)
+      local response = http.request(string.format(request, url_encode(twitter_search), twitter_since_id))
+
+      print("-- twitter_query(): RESPONSE")
+
+-- TODO: Remove "\r\n" from "response"
+
+      local latest_from_user  = nil
+      local latest_created_at = nil
+      local latest_text       = nil
+
+      for index, value in pairs(json.decode(response)) do
+--      print("index: ", index)
+--      print("value: ", value)
+
+        if (index == "max_id") then
+          twitter_since_id = value
+          print("-- twitter_query(): new_since_id: ", twitter_since_id)
+        end
+
+        if (type(value) == 'table') then
+          for index2 = 1, #value do
+            relay_state = true
+
+            print("- - - - - - - - - - - - - - - - - - - -")
+            local new_since_id = value[index2].id 
+
+            if (new_since_id > twitter_since_id) then
+              twitter_since_id = new_since_id
+              print("-- twitter_query(): new_since_id: ", twitter_since_id)
+            end
+
+            local from_user  = value[index2].from_user 
+            local created_at = value[index2].created_at
+            local text       = value[index2].text
+
+            if (latest_from_user == nil) then
+              latest_from_user = from_user
+              latest_created_at = created_at
+              latest_text      = text
+            end
+
+            print("Twitter: From user: ", from_user)
+            print("Twitter: Date/Time: ", created_at)
+            print("Twitter: Message:   ", text)
+
+--          for index3, value3 in pairs(value[index2]) do
+--            print("  index3: ", index3)
+--            print("  value3: ", value3)
+--          end
+          end
+        end
+      end
+
+      if (relay_state) then
+        command = "(relay on)"
+        if (debug) then print("-- send message(): command: ", command) end
+--      serial_client:send(command .. ";\n")
+      end
+
+      if (led_sign_flag) then
+        if (latest_from_user ~= nil) then
+          led_sign_display(" ")
+          led_sign_display("[" .. latest_from_user .. "] " .. latest_text)
+--        led_sign_display(latest_from_user .. ": " .. latest_text:sub(1, 16))
+        end
+      end
+    end
+
+    coroutine.yield()
+  end
 end
 
 -- ------------------------------------------------------------------------- --
 
 function initialize()
--- TODO: "site_token" shouldn't be hard-coded.
-  site_token = "site_26d5b48f00d1a0d9978f7958615ba40c12cbd763"
-  aiko_node_name = "unregistered"
-  aiko_gateway_name = "otage" -- "bifi"
+  PLAIN = 1  -- string.find() pattern matching off
 
-  if (isProduction()) then
-    aiko_gateway_address = "localhost"
+-- TODO: "site_token" shouldn't be hard-coded.
+  site_token = "site_unregistered"
+  aiko_gateway_name = "nomad"
+
+  if (is_production()) then
+    aiko_gateway_address = "localhost"        -- Aiko-Gateway router
     debug = true
   else
---  aiko_gateway_address = "192.168.0.92"     -- otage @ ekoLiving network
-    aiko_gateway_address = "192.168.192.152"  -- otage @ geekscape network
+    aiko_gateway_address = "localhost"        -- desktop / laptop
     debug = true
   end
 
 --use_development_server()  -- "tuxu" on ekoLiving network
   use_production_server()   -- Watch My Thing
 --use_php_debug_server()    -- Reflects HTTP request details in the response
+
+  serial_timeout_period = 1.0  -- seconds
+
+  twitter_flag = false
+  if (twitter_flag) then
+    twitter_throttle = 6    -- How often to invoke API (1 = every time)
+    twitter_rpp      = 2    -- Note: If more than 10, will be multiple pages
+    twitter_search   = "geekscape"
+    twitter_since_id = 5097565461  -- TODO: Start this at "0"
+
+    led_sign_flag = true
+  end
 end
 
 -- ------------------------------------------------------------------------- --
 
+if (not is_production()) then require("luarocks.require") end
 require("socket")
 require("io")
 require("ltn12")
@@ -359,18 +675,25 @@ require("ltn12")
 
 initialize()
 
---send_file("pebble_1", file_name)  -- Primarily for testing
+-- send_file("pebble_1", file_name)  -- Primarily for testing
 
--- TODO: Keep retrying boot message until success (OpenWRT book sequence issue)
-send_event_boot(aiko_gateway_name)
+-- TODO: Keep retrying boot message until success (OpenWRT boot sequence issue)
+  send_event_boot(aiko_gateway_name)
 
 -- TODO: Create co-routine to periodically send heartbeat.
-send_event_heartbeat(aiko_gateway_name)
+  send_event_heartbeat(aiko_gateway_name)
 
 -- TODO: Handle incorrect serial host_name, e.g. not localhost -> fail !
 coroutine_serial = coroutine.create(serial_handler)
 
+if (twitter_flag) then coroutine_twitter = coroutine.create(twitter_query) end
+
 while (coroutine.status(coroutine_serial)) ~= "dead" do
   if (debug) then print("-- coroutine.resume(coroutine_serial):") end
   coroutine.resume(coroutine_serial)
+
+  if (twitter_flag) then
+    if (debug) then print("-- coroutine.resume(coroutine_twitter):") end
+    coroutine.resume(coroutine_twitter)
+  end
 end
