@@ -2,16 +2,36 @@
  * ~~~~~~~~~~~~~
  * Please do not remove the following notices.
  * Copyright (c) 2009 by Geekscape Pty. Ltd.
+ * Documentation:  http://groups.google.com/group/aiko-platform
  * Documentation:  http://geekscape.org/static/arduino.html
  * License: GPLv3. http://geekscape.org/static/arduino_license.html
- * Version: 0.1
+ * Version: 0.2
+ * ----------------------------------------------------------------------------
+ * See Google Docs: "Project: Aiko: Stream protocol specification"
+ * Currently requires an Aiko-Gateway.
+ * ----------------------------------------------------------------------------
  *
- * Prototype "Watch My Thing" device.
- * Currently requires an Aiko Gateway (indirect mode only).
- * See http://watchmything.com/faq
+ * Third-Party libraries
+ * ~~~~~~~~~~~~~~~~~~~~~
+ * These libraries are not included in the Arduino IDE and
+ * need to be downloaded and installed separately.
+ *
+ * - LiquidCrystal
+ *   http://arduino.cc/en/Reference/LiquidCrystal
+ *
+ * - One-Wire
+ *   http://www.arduino.cc/playground/Learning/OneWire
+ *
+ * - NewSoftSerial
+ *   http://arduiniana.org/libraries/newsoftserial
+ *
+ * - PString
+ *   http://arduiniana.org/libraries/pstring
  *
  * To Do
  * ~~~~~
+ * - Put protocol version into boot message to Aiko-Gateway.
+ * - Verify protocol version in the Aiko-Gateway boot message.
  * - Default baud rate 38,400 and auto-baud to 115,200.
  * - Fix temperature data acquisition should work every time, not every second time !
  * - Temperature sensor won't need 750 ms, if using permanent 5 VDC.
@@ -31,20 +51,19 @@
 
 #include <AikoEvents.h>
 #include <AikoSExpression.h>
-#include <OneWire.h>
 
 using namespace Aiko;
 
 #define IS_GATEWAY
-// #define IS_PEBBLE
+//#define IS_PEBBLE
 // #define IS_STONE
 
 #ifdef IS_GATEWAY
 #define DEFAULT_NODE_NAME "gateway_1"
 #define HAS_LCD
 #define HAS_SENSORS
+#define HAS_SERIAL_MIRROR
 #define HAS_TOUCHPANEL
-#define PIN_LIGHT_SENSOR  4
 #endif
 
 #ifdef IS_PEBBLE
@@ -52,7 +71,7 @@ using namespace Aiko;
 #define HAS_LCD
 #define LCD_4094  // Drive LCD with 4094 8-bit shift register to save Arduino pins
 #define HAS_SENSORS
-#define PIN_LIGHT_SENSOR  0
+#define HAS_SPEAKER
 #endif
 
 #ifdef IS_STONE
@@ -61,33 +80,43 @@ using namespace Aiko;
 
 #define TRANSMIT_PERIOD 1  // seconds
 
-// Analogue Input pins
-#define PIN_CURRENT_SENSOR  0 // Stone (electrical monitoring)
-#define PIN_VOLTAGE_SENSOR  1 // Stone (electrical monitoring)
-
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
 #define PIN_SERIAL_TX       1
-#define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
-#define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
-#define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
-#define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
-#define PIN_SPEAKER         9 // Speaker output
 #define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
 
 #ifdef IS_GATEWAY
+// Analogue Input pins
+#define PIN_LIGHT_SENSOR    4
+// Digital Input/Output pins
 #define PIN_ONE_WIRE       10 // OneWire or CANBus
 #define PIN_RELAY          11
 #endif
 
 #ifdef IS_PEBBLE
+// Analogue Input pins
+#define PIN_LIGHT_SENSOR    0
+// Digital Input/Output pins
+#define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
+#define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
+#define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
 #define PIN_ONE_WIRE        5 // OneWire or CANBus
 #define PIN_RELAY           6 // PWM output (timer 2)
+#define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
+#define PIN_SPEAKER         9 // Speaker output
 #endif
 
 #ifdef IS_STONE
+// Analogue Input pins
+#define PIN_CURRENT_SENSOR  0 // Stone (electrical monitoring)
+#define PIN_VOLTAGE_SENSOR  1 // Stone (electrical monitoring)
+// Digital Input/Output pins
 #define PIN_RELAY           3
 #endif
+
+#include <PString.h>
+char globalBuffer[80];  // Used to manage dynamically constructed strings
+PString globalString(globalBuffer, sizeof(globalBuffer));
 
 void (*commandHandlers[])() = {
   nodeCommand,
@@ -112,10 +141,7 @@ SExpression parameter;
 void setup() {
 //analogReference(EXTERNAL);
 
-//Serial.begin(115200);
-Serial.begin(38400);
-
-  Events.addHandler(serialHandler, 10);
+  Events.addHandler(serialHandler, 30);  // Sufficient for 38,400 baud
   Events.addHandler(blinkHandler,  1000 * TRANSMIT_PERIOD);
   Events.addHandler(nodeHandler,   1000 * TRANSMIT_PERIOD);
 
@@ -127,6 +153,10 @@ Serial.begin(38400);
 #ifdef HAS_SENSORS
   Events.addHandler(lightSensorHandler,       1000 * TRANSMIT_PERIOD);
   Events.addHandler(temperatureSensorHandler, 1000 * TRANSMIT_PERIOD);
+#endif
+
+#ifdef HAS_SERIAL_MIRROR
+  Events.addHandler(serialMirrorHandler, 30);  // Sufficient for 38,400 baud
 #endif
 
 #ifdef HAS_TOUCHPANEL
@@ -186,9 +216,7 @@ void resetClockCommand(void) {
 char nodeName[40] = DEFAULT_NODE_NAME;
 
 void nodeHandler(void) {
-  Serial.print("(node ");
-  Serial.print(nodeName);
-  Serial.println(")");
+  sendMessage("");
 }
 
 void nodeCommand(void) {
@@ -204,6 +232,14 @@ void nodeCommand(void) {
   }
 }
 
+void sendMessage(const char* message) {
+  Serial.print("(node ");
+  Serial.print(nodeName);
+  Serial.print(" ? ");
+  Serial.print(message);
+  Serial.println(")");
+}
+
 /* -------------------------------------------------------------------------- */
 
 int lightValue = 0;
@@ -211,12 +247,16 @@ int lightValue = 0;
 void lightSensorHandler(void) {
   lightValue = analogRead(PIN_LIGHT_SENSOR);
 
-  Serial.print("(light_lux ");
-  Serial.print(lightValue);
-  Serial.println(" lux)");
+  globalString.begin();
+  globalString  = "(light_lux ";
+  globalString += lightValue;
+  globalString += " lux)";
+  sendMessage(globalString);
 }
 
 /* -------------------------------------------------------------------------- */
+
+#include <OneWire.h>
 
 OneWire oneWire(PIN_ONE_WIRE);  // Maxim DS18B20 temperature sensor
 
@@ -267,12 +307,12 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
   Serial.println();
  */
   if (OneWire::crc8(address, 7) != address[7]) {
-//  Serial.println("(error 'Address CRC is not valid')");
+//  sendMessage("(error 'Address CRC is not valid')");
     return;
   }
 
   if (address[0] != ONE_WIRE_DEVICE_18B20) {
-//  Serial.println("(error 'Device is not a DS18B20')");
+//  sendMessage("(error 'Device is not a DS18B20')");
     return;
   }
 
@@ -295,7 +335,7 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
     Serial.println();
  */
     if (OneWire::crc8(data, 8) != data[8]) {
-//    Serial.println("(error 'Data CRC is not valid')");
+//    sendMessage("(error 'Data CRC is not valid')");
       return;
     }
 
@@ -308,13 +348,15 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
     temperature_whole    = tc_100 / 100;
     temperature_fraction = tc_100 % 100;
 
-    Serial.print("(temperature ");
-    if (signBit) Serial.print("-");
-    Serial.print(temperature_whole);
-    Serial.print(".");
-    if (temperature_fraction < 10) Serial.print("0");
-    Serial.print(temperature_fraction);
-    Serial.println(" C)");
+    globalString.begin();
+    globalString  = "(temperature ";
+    if (signBit) globalString += "-";
+    globalString += temperature_whole;
+    globalString += ".";
+    if (temperature_fraction < 10) globalString += "0";
+    globalString += temperature_fraction;
+    globalString += " C)";
+    sendMessage(globalString);
   }
 
   // Start temperature conversion with parasitic power
@@ -332,7 +374,9 @@ byte relayInitialized = false;
 
 void relayInitialize(void) {
   pinMode(PIN_RELAY,   OUTPUT);
+#ifdef HAS_SPEAKER
   pinMode(PIN_SPEAKER, OUTPUT);
+#endif
 
   relayInitialized = true;
 }
@@ -342,16 +386,19 @@ void relayCommand(void) {
 
   if (parameter.isEqualTo("on")) {
     digitalWrite(PIN_RELAY, HIGH);  Serial.println("(relay is on)");
-//  playTune();
+#ifdef HAS_SPEAKER
+    playTune();
+#endif
   }
   else if (parameter.isEqualTo("off")) {
     digitalWrite(PIN_RELAY, LOW);  Serial.println("(relay is off)");
   }
   else {
-//  Serial.println("(error parameterInvalid)");
+//  sendMessage("(error parameterInvalid)");
   }
 }
 
+#ifdef HAS_SPEAKER
 int length = 5; // the number of notes
 char notes[] = "bCacd "; // a space represents a rest
 int beats[] = { 1, 1, 1, 1, 2 };
@@ -393,6 +440,7 @@ void playTone(int tone, int duration) {
     delayMicroseconds(tone);
   }
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 /* LCD KS0066 4-bit data interface, 3 Arduino pins and MC14094 8-bit register
@@ -425,7 +473,7 @@ byte lcdInitialized = false;
 
 void resetLcdCommand(void) {
   lcdInitialized = false;
-// Serial.println("resetLcdCommand()");
+//sendMessage("resetLcdCommand()");
 }
 
 #ifdef LCD_4094
@@ -637,14 +685,27 @@ void lcdHandler(void) {
  * Arduino serial buffer is 128 characters.
  * At 115,200 baud (11,520 cps) the buffer is filled 90 times per second.
  * Need to run this handler every 10 milliseconds.
+ *
+ * At 38,400 baud (3,840 cps) the buffer is filled 30 times per second.
+ * Need to run this handler every 30 milliseconds.
  */
 
 SExpressionArray commandArray;
+
+byte serialHandlerInitialized = false;
+
+void serialHandlerInitialize(void) {
+  Serial.begin(38400);
+
+  serialHandlerInitialized = true;
+}
 
 void serialHandler(void) {
   static char buffer[32];
   static byte length = 0;
   static long timeOut = 0;
+
+  if (serialHandlerInitialized == false) serialHandlerInitialize();
 
   unsigned long timeNow = millis();
   int count = Serial.available();
@@ -652,22 +713,23 @@ void serialHandler(void) {
   if (count == 0) {
     if (length > 0) {
       if (timeNow > timeOut) {
-//      Serial.println("(error timeout)");
+//      sendMessage("(error timeout)");
         length = 0;
       }
     }
   }
   else {
-/*
-    Serial.print("(info readCount ");
-    Serial.print(count);
-    Serial.println(")");
+/*  globalString.begin();
+    globalString  = "(info readCount ";
+    globalString += count;
+    globalString += ")";
+    sendMessage(globalString);
  */
     for (byte index = 0; index < count; index ++) {
       char ch = Serial.read();
 
       if (length >= (sizeof(buffer) / sizeof(*buffer))) {
-//      Serial.println("(error bufferOverflow)");
+//      sendMessage("(error bufferOverflow)");
         length = 0;
       }
       else if (ch == '\n'  ||  ch == ';') {
@@ -686,7 +748,7 @@ void serialHandler(void) {
         while (commandIndex < commandCount) {
           if (commandArray[0].isEqualTo(commands[commandIndex])) {
             if (parameterCount[commandIndex] != (commandArray.length() - 1)) {
-//            Serial.println("(error parameterCount)");
+//            sendMessage("(error parameterCount)");
             }
             else {  // execute command
               if (parameterCount[commandIndex] > 0) parameter = commandArray[1];
@@ -698,7 +760,7 @@ void serialHandler(void) {
           commandIndex ++;
         }
 
-//      if (commandIndex >= commandCount) Serial.println("(error unknownCommand)");
+//      if (commandIndex >= commandCount) sendMessage("(error unknownCommand)");
 
         length = 0;
       }
@@ -710,6 +772,75 @@ void serialHandler(void) {
     timeOut = timeNow + 5000;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+
+#ifdef HAS_SERIAL_MIRROR
+#include <NewSoftSerial.h>
+
+#define SERIAL_MIRROR_RX_PIN 2
+#define SERIAL_MIRROR_TX_PIN 3
+
+byte serialMirrorInitialized = false;
+
+NewSoftSerial serialMirror =  NewSoftSerial(SERIAL_MIRROR_RX_PIN, SERIAL_MIRROR_TX_PIN);
+
+#define SERIAL_MIRROR_BUFFER_SIZE 128
+
+void serialMirrorInitialize(void) {
+  serialMirror.begin(38400);
+
+  serialMirrorInitialized = true;
+}
+
+void serialMirrorHandler(void) {
+  static char serialMirrorBuffer[SERIAL_MIRROR_BUFFER_SIZE];
+  static byte serialMirrorLength = 0;
+  static long serialMirrorTimeOut = 0;
+
+  if (serialMirrorInitialized == false) serialMirrorInitialize();
+
+  unsigned long timeNow = millis();
+  int count = serialMirror.available();
+
+  if (count == 0) {
+    if (serialMirrorLength > 0) {
+      if (timeNow > serialMirrorTimeOut) {
+        sendMessage("(error serialMirrorTimeout)");
+        serialMirrorLength = 0;
+      }
+    }
+  }
+  else {
+/*  globalString.begin();
+    globalString  = "(info readCount ";
+    globalString += count;
+    globalString += ")";
+    sendMessage(globalString);
+ */
+    for (byte index = 0; index < count; index ++) {
+      char ch = serialMirror.read();
+
+      if (ch == '\n') continue;
+
+      if (serialMirrorLength >= (sizeof(serialMirrorBuffer) / sizeof(*serialMirrorBuffer))) {
+        sendMessage("(error serialMirrorBufferOverflow)");
+        serialMirrorLength = 0;
+      }
+      else if (ch == '\r') {
+        serialMirrorBuffer[serialMirrorLength] = '\0';  // TODO: Check this working correctly, seems to be some problems when command is longer than buffer length ?!?
+        Serial.println(serialMirrorBuffer);
+        serialMirrorLength = 0;
+      }
+      else {
+        serialMirrorBuffer[serialMirrorLength ++] = ch;
+      }
+    }
+
+    serialMirrorTimeOut = timeNow + 5000;
+  }
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -728,7 +859,6 @@ void serialHandler(void) {
 #define yLowAnalog  3
 #define yLow       (yLowAnalog + ANALOG_OFFSET)
 #define yHigh      (1 + ANALOG_OFFSET)
-#endif
 
 void touchPanelHandler() {
   pinMode(xLow,OUTPUT);
@@ -790,6 +920,7 @@ int touch(
 
   return(x >= xMin  &&  x <= xMax  &&  y >= yMin  &&  y <= yMax);
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 
