@@ -11,13 +11,14 @@
 -- See Google Docs: "Project: Aiko: Stream protocol specification"
 -- Currently requires an Aiko Gateway (indirect mode only).
 -- ------------------------------------------------------------------------- --
-
+--
+-- Custom configuration: See "aiko_configuration.lua".
+--
 -- ToDo: Aiko Gateway
 -- ~~~~~~~~~~~~~~~~~~
 -- - Put protocol version into boot message to Aiko-Node and web service.
 -- - Verify protocol version in the Aiko-Node boot message.
 
--- - Configuration in separate Lua script file.
 -- - Re-open serial network port 2000, if it closes.
 -- - Listen on socket for commands to Aiko-Gateway.
 -- - Migrate Twitter LED sign support to Aiko-Node.
@@ -636,42 +637,22 @@ end
 function initialize()
   PLAIN = 1  -- string.find() pattern matching off
 
--- TODO: "site_token" shouldn't be hard-coded.
-  site_token = "site_unregistered"
-  aiko_gateway_name = "nomad"
-
-  if (is_production()) then
-    aiko_gateway_address = "localhost"        -- Aiko-Gateway router
-    debug = true
-  else
-    aiko_gateway_address = "localhost"        -- desktop / laptop
-    debug = true
-  end
-
---use_development_server()  -- "tuxu" on ekoLiving network
-  use_production_server()   -- Watch My Thing
+  use_production_server()   -- Smart Energy Groups web service
+--use_development_server()  -- Watch My Thing on ekoLiving network (aka "tuxu")
 --use_php_debug_server()    -- Reflects HTTP request details in the response
-
-  serial_timeout_period = 1.0  -- seconds
-
-  twitter_flag = false
-  if (twitter_flag) then
-    twitter_throttle = 6    -- How often to invoke API (1 = every time)
-    twitter_rpp      = 2    -- Note: If more than 10, will be multiple pages
-    twitter_search   = "geekscape"
-    twitter_since_id = 5097565461  -- TODO: Start this at "0"
-
-    led_sign_flag = true
-  end
 end
 
 -- ------------------------------------------------------------------------- --
+
+print("[Aiko-Gateway V0.2 2009-11-20]");
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
 require("io")
 require("ltn12")
 --require("ssl")
+
+require("aiko_configuration")  -- Aiko-Gateway configuration file
 
 initialize()
 
