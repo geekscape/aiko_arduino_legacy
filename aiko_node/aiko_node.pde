@@ -35,11 +35,12 @@
  * - Default baud rate 38,400 and auto-baud to 115,200.
  * - Fix temperature data acquisition should work every time, not every second time !
  * - Temperature sensor won't need 750 ms, if using permanent 5 VDC.
- * - Save and restore configuration from EEPROM.
- * - Handle "(node= name)", where "name" greater than 16 characters.
+ * - Handle "(node= name)", where "name" greater than 40 characters.
+ *   - "name" parameter should be delimited by double-quotes.
  * - Complete serialHandler() communications.
  * - Think about what happens when reusing "SExpressionArray commandArray" ?
  * - Implement: addCommandHandler() and removeCommandHandler().
+ *   - This will be neater than the current ugly #ifdef / #endif arrangement.
  * - Implement: (update_rate SECONDS UNIT)
  * - Implement: (error on) (error off)
  * - Implement: (display_title= STRING) --> LCD position (0,0)
@@ -56,7 +57,7 @@ using namespace Aiko;
 
 #define IS_GATEWAY
 //#define IS_PEBBLE
-// #define IS_STONE
+//#define IS_STONE
 
 #ifdef IS_GATEWAY
 #define DEFAULT_NODE_NAME "gateway_1"
@@ -76,9 +77,11 @@ using namespace Aiko;
 
 #ifdef IS_STONE
 #define DEFAULT_NODE_NAME "stone_1"
+//#define STONE_DEBUG  // Enable capture and dump of all sampled values
 #endif
 
-#define TRANSMIT_PERIOD 1  // seconds
+#define DEFAULT_BAUD_RATE     38400
+#define DEFAULT_TRANSMIT_RATE     1  // seconds
 
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
@@ -108,8 +111,12 @@ using namespace Aiko;
 
 #ifdef IS_STONE
 // Analogue Input pins
-#define PIN_CURRENT_SENSOR  0 // Stone (electrical monitoring)
-#define PIN_VOLTAGE_SENSOR  1 // Stone (electrical monitoring)
+#define PIN_CURRENT_SENSOR_1  0 // Electrical monitoring (phase 1)
+#define PIN_VOLTAGE_SENSOR_1  1
+#define PIN_CURRENT_SENSOR_2  2 // Electrical monitoring (phase 2)
+#define PIN_VOLTAGE_SENSOR_2  3
+#define PIN_CURRENT_SENSOR_3  4 // Electrical monitoring (phase 3)
+#define PIN_VOLTAGE_SENSOR_3  5
 // Digital Input/Output pins
 #define PIN_RELAY           3
 #endif
@@ -119,31 +126,67 @@ char globalBuffer[80];  // Used to manage dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
 void (*commandHandlers[])() = {
+#ifdef HAS_LCD
+  alertCommand,
+  displayCommand,
+#endif
+  baudRateCommand,
   nodeCommand,
   relayCommand,
   resetClockCommand,
-  resetLcdCommand
+  resetLcdCommand,
+  transmitRateCommand
 };
 
 char* commands[] = {
+#ifdef HAS_LCD
+  "alert",
+  "display",
+#endif
+  "baud=",
   "node=",
   "relay",
   "reset_clock",
-  "reset_lcd"
+  "reset_lcd",
+  "transmit="
+};
+
+char* eepromKeyword[] = {
+#ifdef HAS_LCD
+  0,
+  0,
+#endif
+  0,  // "bd",
+  "nd",
+  0,
+  0,
+  0,
+  0   // "tr"
+};
+
+byte parameterCount[] = {  // ToDo: Change this to incorporate parameter type ?
+#ifdef HAS_LCD
+  1,  // alert message   (string)
+  1,  // display message (string)
+#endif
+  1,  // baud rate       (integer)
+  1,  // node name       (string)
+  1,  // relay state     (boolean)
+  0,  // reset clock     (none)
+  0,  // reset_lcd       (none)
+  1   // transmit rate   (integer seconds)
 };
 
 byte commandCount = sizeof(commands) / sizeof(*commands);
-
-byte parameterCount[] = { 1, 1, 0 };
 
 SExpression parameter;
 
 void setup() {
 //analogReference(EXTERNAL);
 
-  Events.addHandler(serialHandler, 30);  // Sufficient for 38,400 baud
-  Events.addHandler(blinkHandler,  1000 * TRANSMIT_PERIOD);
-  Events.addHandler(nodeHandler,   1000 * TRANSMIT_PERIOD);
+  Events.addHandler(serialHandler,   30);  // Sufficient for 38,400 baud
+  Events.addHandler(blinkHandler,   500);
+  Events.addHandler(nodeHandler,   1000 * DEFAULT_TRANSMIT_RATE);
 
 #ifdef HAS_LCD
   Events.addHandler(clockHandler,  1000);
@@ -151,8 +194,8 @@ void setup() {
 #endif
 
 #ifdef HAS_SENSORS
-  Events.addHandler(lightSensorHandler,       1000 * TRANSMIT_PERIOD);
-  Events.addHandler(temperatureSensorHandler, 1000 * TRANSMIT_PERIOD);
+  Events.addHandler(lightSensorHandler,       1000 * DEFAULT_TRANSMIT_RATE);
+  Events.addHandler(temperatureSensorHandler, 1000 * DEFAULT_TRANSMIT_RATE);
 #endif
 
 #ifdef HAS_SERIAL_MIRROR
@@ -164,7 +207,7 @@ void setup() {
 #endif
 
 #ifdef IS_STONE
-  Events.addHandler(currentSensorHandler, 1000 * TRANSMIT_PERIOD);
+  Events.addHandler(currentSensorHandler, 1000 * DEFAULT_TRANSMIT_RATE);
 #endif
 }
 
@@ -208,7 +251,6 @@ void clockHandler(void) {
 
 void resetClockCommand(void) {
   second = minute = hour = 0;
-// Serial.println("resetClockCommand()");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -242,6 +284,7 @@ void sendMessage(const char* message) {
 
 /* -------------------------------------------------------------------------- */
 
+#ifdef HAS_SENSORS
 int lightValue = 0;
 
 void lightSensorHandler(void) {
@@ -253,9 +296,11 @@ void lightSensorHandler(void) {
   globalString += " lux)";
   sendMessage(globalString);
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 
+#ifdef HAS_SENSORS
 #include <OneWire.h>
 
 OneWire oneWire(PIN_ONE_WIRE);  // Maxim DS18B20 temperature sensor
@@ -367,6 +412,7 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
   // Must wait at least 750 milliseconds for temperature conversion to complete
   oneWireInitialized = true;
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -666,6 +712,7 @@ void lcdHandler(void) {
   if (second < 10) lcdWriteString("0");
   lcdWriteNumber((int) second);
 
+#ifdef HAS_SENSORS
   lcdPosition(1, 0);
   lcdWriteString("Lux ");
   lcdWriteNumber(lightValue);
@@ -677,10 +724,36 @@ void lcdHandler(void) {
   if (temperature_fraction < 10) lcdWriteString("0");
   lcdWriteNumber(temperature_fraction);
   lcdWriteString(" C  ");
+#endif
 }
 
 /* -------------------------------------------------------------------------- */
 
+void alertCommand(void) {
+  char* parameterString = parameter.head();
+}
+
+void displayCommand(void) {
+  char* parameterString = parameter.head();
+}
+
+/* -------------------------------------------------------------------------- */
+
+int baudRate = DEFAULT_BAUD_RATE;
+
+void baudRateCommand(void) {
+  char* parameterString = parameter.head();
+}
+
+/* -------------------------------------------------------------------------- */
+
+int transmitRate = DEFAULT_TRANSMIT_RATE;  // seconds
+
+void transmitRateCommand(void) {
+  char* parameterString = parameter.head();
+}
+
+/* -------------------------------------------------------------------------- */
 /*
  * Arduino serial buffer is 128 characters.
  * At 115,200 baud (11,520 cps) the buffer is filled 90 times per second.
@@ -695,7 +768,7 @@ SExpressionArray commandArray;
 byte serialHandlerInitialized = false;
 
 void serialHandlerInitialize(void) {
-  Serial.begin(38400);
+  Serial.begin(DEFAULT_BAUD_RATE);
 
   serialHandlerInitialized = true;
 }
@@ -820,7 +893,6 @@ void serialMirrorHandler(void) {
  */
     for (byte index = 0; index < count; index ++) {
       char ch = serialMirror.read();
-
       if (ch == '\n') continue;
 
       if (serialMirrorLength >= (sizeof(serialMirrorBuffer) / sizeof(*serialMirrorBuffer))) {
@@ -928,7 +1000,12 @@ int touch(
 byte currentSensorInitialized = false;
 
 #define CURRENT_SIZE   10
+
+#ifdef STONE_DEBUG
+#define SAMPLE_SIZE 100
+#else
 #define SAMPLE_SIZE  5000
+#endif
 
 float current_average[CURRENT_SIZE];
 int   current_index = 0;
@@ -948,18 +1025,22 @@ void currentSensorHandler(void) {
   int  raw_minimum = 2048;
   int  raw_maximum = 0;
   int  sample;
-//int  samples[SAMPLE_SIZE];
   long timer;
-//long timer[SAMPLE_SIZE];
+#ifdef STONE_DEBUG
+  int  samples[SAMPLE_SIZE];
+  long timers[SAMPLE_SIZE];
+#endif
 
   float rms_current = 0.0;
   float runtime_average = 0.0;
 
   for (int index = 0;  index < SAMPLE_SIZE;  index ++) {
     timer = micros();
-//  timer[index] = micros();
-    sample = analogRead(PIN_CURRENT_SENSOR);
-//  samples[index] = sample;
+    sample = analogRead(PIN_CURRENT_SENSOR_1);
+#ifdef STONE_DEBUG
+    timers[index] = timer;
+    samples[index] = sample;
+#endif
     if (sample < raw_minimum) raw_minimum = sample;
     if (sample > raw_maximum) raw_maximum = sample;
 
@@ -967,23 +1048,30 @@ void currentSensorHandler(void) {
     rms_current = rms_current + sq((float) (sample - 537));
     raw_average = raw_average + sample;
 
-    delayMicroseconds(200 - micros() + timer - 8);
+#ifdef STONE_DEBUG
+    delayMicroseconds(10000 - micros() + timer - 8);  // 100 samples per second
+#else
+    delayMicroseconds(200 - micros() + timer - 8);  // 5,000 samples per second
+#endif
   }
-/*
+
+#ifdef STONE_DEBUG
   for (int index = 0;  index < SAMPLE_SIZE;  index ++) {
     Serial.print(samples[index]);
     Serial.print(",");
-    Serial.println(timer[index] - timer[0]);
+    Serial.println(timers[index] - timers[0]);
   }
- */
+#endif
 
   rms_current = sqrt(rms_current / (SAMPLE_SIZE));
   raw_average = raw_average / SAMPLE_SIZE;
-/*
+
+#ifdef STONE_DEBUG
   Serial.println("----------");
   Serial.print("RMS current (pre-correction): ");
   Serial.println(rms_current);
- */
+#endif
+
   // Hard-coded correction factor, replace "32.6" :(
   float correction_factor = 32.6;
   if (rms_current < 30.00) correction_factor = 34.09;
@@ -1001,10 +1089,13 @@ void currentSensorHandler(void) {
   int watts = rms_current * 248;
   if (watts < 70) watts = 0;
 
-  Serial.print("(power ");
-  Serial.print(watts);
-  Serial.println(" W)");
-/*
+  globalString.begin();
+  globalString  = "(power ";
+  globalString += watts;
+  globalString += " W)";
+  sendMessage(globalString);
+
+#ifdef STONE_DEBUG
   Serial.println("----------");
   Serial.print("Raw average: ");
   Serial.println(raw_average);
@@ -1012,16 +1103,12 @@ void currentSensorHandler(void) {
   Serial.println(raw_minimum);
   Serial.print("Raw maximum: ");
   Serial.println(raw_maximum);
-
   Serial.print("RMS Current: ");
   Serial.println(rms_current);
-
   // Assume Power Factor of 1.0 for the moment
-  Serial.print("Power (watts): ");
-  Serial.println(watts);
-  Serial.print("RMS Current (run-time average): ");
+  Serial.print("RMS Current (average): ");
   Serial.println(runtime_average);
- */
+#endif
 }
 #endif
 
