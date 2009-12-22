@@ -61,6 +61,7 @@ using namespace Aiko;
 
 #ifdef IS_GATEWAY
 #define DEFAULT_NODE_NAME "gateway_1"
+#define DEFAULT_TRANSMIT_RATE     1  // seconds
 #define HAS_LCD
 #define HAS_SENSORS
 #define HAS_SERIAL_MIRROR
@@ -69,19 +70,22 @@ using namespace Aiko;
 
 #ifdef IS_PEBBLE
 #define DEFAULT_NODE_NAME "pebble_1"
+#define DEFAULT_TRANSMIT_RATE     1  // seconds
 #define HAS_LCD
-#define LCD_4094  // Drive LCD with 4094 8-bit shift register to save Arduino pins
+#define LCD_4094      // Drive LCD wth 4094 8-bit shift register to save Arduino pins
+#define HAS_HP_LD220  // Hewlett-Packard Point-Of-Sale sign
 #define HAS_SENSORS
 #define HAS_SPEAKER
 #endif
 
 #ifdef IS_STONE
 #define DEFAULT_NODE_NAME "stone_1"
+#define DEFAULT_NODE_NAME "mdb_1"    // (Whittlesea)
+#define DEFAULT_TRANSMIT_RATE    30  // seconds
 //#define STONE_DEBUG  // Enable capture and dump of all sampled values
 #endif
 
 #define DEFAULT_BAUD_RATE     38400
-#define DEFAULT_TRANSMIT_RATE     1  // seconds
 
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
@@ -111,18 +115,13 @@ using namespace Aiko;
 
 #ifdef IS_STONE
 // Analogue Input pins
-#define PIN_CURRENT_SENSOR_1  0 // Electrical monitoring (phase 1)
-#define PIN_VOLTAGE_SENSOR_1  1
-#define PIN_CURRENT_SENSOR_2  2 // Electrical monitoring (phase 2)
-#define PIN_VOLTAGE_SENSOR_2  3
-#define PIN_CURRENT_SENSOR_3  4 // Electrical monitoring (phase 3)
-#define PIN_VOLTAGE_SENSOR_3  5
+#define PIN_CURRENT_SENSOR_1  0 // Electrical monitoring
 // Digital Input/Output pins
 #define PIN_RELAY           3
 #endif
 
 #include <PString.h>
-char globalBuffer[80];  // Used to manage dynamically constructed strings
+char globalBuffer[200];  // Used to manage dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
 void (*commandHandlers[])() = {
@@ -207,7 +206,9 @@ void setup() {
 #endif
 
 #ifdef IS_STONE
-  Events.addHandler(currentSensorHandler, 1000 * DEFAULT_TRANSMIT_RATE);
+//Events.addHandler(currentSensorHandler, 1000 * DEFAULT_TRANSMIT_RATE);
+  Events.addHandler(currentClampHandler,  1);
+  Events.addHandler(powerOutputHandler,   1000 * DEFAULT_TRANSMIT_RATE);
 #endif
 }
 
@@ -427,17 +428,23 @@ void relayInitialize(void) {
   relayInitialized = true;
 }
 
+boolean relay_state = false;
+
 void relayCommand(void) {
   if (relayInitialized == false) relayInitialize();
 
   if (parameter.isEqualTo("on")) {
-    digitalWrite(PIN_RELAY, HIGH);  Serial.println("(relay is on)");
+relay_state = true;
+    digitalWrite(PIN_RELAY, HIGH);
+    Serial.println("(relay is on)");
 #ifdef HAS_SPEAKER
     playTune();
 #endif
   }
   else if (parameter.isEqualTo("off")) {
-    digitalWrite(PIN_RELAY, LOW);  Serial.println("(relay is off)");
+relay_state = false;
+    digitalWrite(PIN_RELAY, LOW);
+    Serial.println("(relay is off)");
   }
   else {
 //  sendMessage("(error parameterInvalid)");
@@ -616,6 +623,9 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
 
 void lcdInitialize(void) {
   lcdInitialized = true;
+
+  pinMode(OUTPUT, 11);
+  digitalWrite(11, HIGH);
 
   lcd.begin(16, 2);
   lcd.noCursor();
@@ -861,7 +871,7 @@ NewSoftSerial serialMirror =  NewSoftSerial(SERIAL_MIRROR_RX_PIN, SERIAL_MIRROR_
 #define SERIAL_MIRROR_BUFFER_SIZE 128
 
 void serialMirrorInitialize(void) {
-  serialMirror.begin(38400);
+  serialMirror.begin(DEFAULT_BAUD_RATE);
 
   serialMirrorInitialized = true;
 }
@@ -996,7 +1006,7 @@ int touch(
 
 /* -------------------------------------------------------------------------- */
 
-#ifdef IS_STONE
+#ifdef IS_STONE_DEPRECATED
 byte currentSensorInitialized = false;
 
 #define CURRENT_SIZE   10
@@ -1011,6 +1021,8 @@ float current_average[CURRENT_SIZE];
 int   current_index = 0;
 
 void currentSensorInitialize(void) {
+//analogReference(INTERNAL);
+
   currentSensorInitialized = true;
 
   for (int index = 0;  index < CURRENT_SIZE;  index ++) {
@@ -1089,10 +1101,27 @@ void currentSensorHandler(void) {
   int watts = rms_current * 248;
   if (watts < 70) watts = 0;
 
+//watts = relay_state  ?  100  :  222;
+
+  char unitName[] = { '1', '2', '3', '4', '5' };
+
   globalString.begin();
-  globalString  = "(power ";
-  globalString += watts;
-  globalString += " W)";
+
+  for (int unit = 0; unit < sizeof(unitName); unit ++) {
+//  globalString += "(power ";
+    globalString += "(hvac_";
+    globalString += unitName[unit];
+    globalString += "w ";
+    globalString += watts + unit;
+    globalString += " W)";
+
+    globalString += "(hvac_";
+    globalString += unitName[unit];
+    globalString += "wh ";
+    globalString += watts + unit + 300;
+    globalString += " Wh)";
+  }
+
   sendMessage(globalString);
 
 #ifdef STONE_DEBUG
@@ -1109,6 +1138,117 @@ void currentSensorHandler(void) {
   Serial.print("RMS Current (average): ");
   Serial.println(runtime_average);
 #endif
+}
+#endif
+
+/* -------------------------------------------------------------------------- */
+
+#ifdef IS_STONE
+byte currentClampInitialized = false;
+
+//#define CALIBRATION  34.80  // 10 mV per Amp, analog reference = internal (1 VDC)
+#define CALIBRATION   144.45  // 10 mV per Amp, analog reference = default  (5 VDC) (Whittlesea)
+#define CHANNELS          5   // Current Clamp(s)
+#define SAMPLES        2000   // Current samples to take
+#define AVERAGES         10   // Number of RMS values to average
+
+float watts[CHANNELS];                  // Instantaneous
+float wattHoursSum[CHANNELS];           // Cumulative
+float wattHoursSumLast[CHANNELS];       // For calculating instantaneous wattHours
+unsigned long wattHoursTime[CHANNELS];  // Time of last calculation
+
+void currentClampInitialize(void) {
+//analogReference(INTERNAL);
+
+  for (int channel = 0; channel < CHANNELS; channel ++) {
+    watts[channel]            = 0.0;
+    wattHoursSum[channel]     = 0.0;
+    wattHoursSumLast[channel] = 0.0;
+    wattHoursTime[channel]    = millis();
+  }
+
+  currentClampInitialized = true;
+}
+
+void currentClampHandler() {
+  if (currentClampInitialized == false) currentClampInitialize();
+
+  for (int channel = 0; channel < CHANNELS; channel ++) {
+    int   pin = PIN_CURRENT_SENSOR_1 + channel;
+    int   sample;
+    float watts_sum = 0;
+
+    for (int average = 0; average < AVERAGES; average ++) {
+      float rms = 0;
+
+      for (int index = 0; index < SAMPLES; index ++) {
+        sample = analogRead(pin);
+        rms    = rms + sq((float) sample);
+      }
+
+      rms = sqrt(rms / (SAMPLES / 2) );
+      watts_sum = watts_sum + (rms * CALIBRATION);
+    }
+
+    watts[channel] = watts_sum / AVERAGES;
+
+    unsigned long timeNow = millis();
+
+    if (timeNow > wattHoursTime[channel]) {  // Sanity check, in case millis() wraps around
+      unsigned long duration = timeNow - wattHoursTime[channel];
+
+      wattHoursSum[channel] = wattHoursSum[channel] + (watts[channel] * (duration / 1000.0 / 3600.0));
+    }
+
+    wattHoursTime[channel] = timeNow;
+/*
+    Serial.print("Watts ");
+    Serial.print(channel + 1);
+    Serial.print(": ");
+    Serial.println(watts[channel]);
+
+    Serial.print("WattHoursSum ");
+    Serial.print(channel + 1);
+    Serial.print(": ");
+    Serial.println(wattHoursSum[channel]);
+ */
+  }
+}
+
+void powerOutputHandler() {
+  globalString.begin();
+
+  for (int channel = 0; channel < CHANNELS; channel ++) {
+    float wattHours = wattHoursSum[channel] - wattHoursSumLast[channel];
+
+    wattHoursSumLast[channel] = wattHoursSum[channel];
+
+    globalString += "(hvac_";
+    globalString += channel + 1;
+    globalString += "w ";
+    globalString += watts[channel];
+    globalString += " W)";
+
+    globalString += "(hvac_";
+    globalString += channel + 1;
+    globalString += "wh ";
+    globalString += wattHours;
+    globalString += " Wh)";
+  }
+
+  sendMessage(globalString);
+
+  globalString.begin();
+
+  for (int channel = 0; channel < CHANNELS; channel ++) {
+    globalString += "(hvac_";
+    globalString += channel + 1;
+    globalString += "whs ";
+    globalString += wattHoursSum[channel];
+    globalString += " Wh)";
+  }
+
+  sendMessage(globalString);
 }
 #endif
 

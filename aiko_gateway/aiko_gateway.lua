@@ -18,6 +18,7 @@
 -- ~~~~~~~~~~~~~~~~~~
 -- - Put protocol version into boot message to Aiko-Node and web service.
 -- - Verify protocol version in the Aiko-Node boot message.
+--   - Send tweet to owner, if newer software versions are available.
 
 -- - Re-open serial network port 2000, if it closes.
 -- - Listen on socket for commands to Aiko-Gateway.
@@ -644,7 +645,7 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-print("[Aiko-Gateway V0.2 2009-11-20]");
+print("[Aiko-Gateway V0.2 2009-12-16]");
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
