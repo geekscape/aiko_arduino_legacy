@@ -18,16 +18,19 @@
   site_token = "site_unregistered"
 
 -- Aiko-Node: Serial connection sample time
-  serial_timeout_period = 1.0  -- seconds
+  serial_timeout_period = 15.0  -- seconds
+
+-- Aiko-Gateway: Heartbeat rate
+ heartbeat_rate = 60 / serial_timeout_period -- Every 60 seconds
 
 ----------------------------------------------------
 -- Aiko-Node: "Serial to Network" host IP address --
 ----------------------------------------------------
-  if (is_production()) then                   -- Running on Aiko-Gateway router
-    aiko_gateway_address = "localhost"
+  if (is_production()) then                  -- Running on Aiko-Gateway router
+    aiko_gateway_address = "127.0.0.1"       -- Safer to avoid hostname lookup
     debug = false
-  else                                        -- Running on Desktop / Laptop
-    aiko_gateway_address = "ASUS_ROUTER"      -- Aiko-Gateway IP Address ?
+  else                                       -- Running on Desktop / Laptop
+    aiko_gateway_address = "ASUS_ROUTER"     -- Aiko-Gateway IP Address ?
     debug = true
   end
 

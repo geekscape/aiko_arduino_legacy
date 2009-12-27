@@ -318,8 +318,26 @@ end
 function send_event_heartbeat(node_name)
   if (debug) then print("-- send_event_heartbeat(): " .. node_name) end
 
-  message = "(cpu_usage 5 %) (node_count 1 number)"
+  message = "(cpu_usage 0 %) (node_count 1 number)"
   send_message(wrap_message(message, node_name))
+end
+
+-- ------------------------------------------------------------------------- --
+
+function heartbeat_handler()
+  local throttle_counter = 1 -- Always start with a heartbeat
+
+  while (true) do
+    throttle_counter = throttle_counter - 1
+
+    if (throttle_counter <= 0) then
+      throttle_counter = heartbeat_rate
+
+      send_event_heartbeat(aiko_gateway_name)
+    end
+
+    coroutine.yield()
+  end
 end
 
 -- ------------------------------------------------------------------------- --
@@ -645,7 +663,7 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-print("[Aiko-Gateway V0.2 2009-12-16]");
+print("[Aiko-Gateway V0.2 2009-12-24]");
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
@@ -662,8 +680,7 @@ initialize()
 -- TODO: Keep retrying boot message until success (OpenWRT boot sequence issue)
   send_event_boot(aiko_gateway_name)
 
--- TODO: Create co-routine to periodically send heartbeat.
-  send_event_heartbeat(aiko_gateway_name)
+coroutine_heartbeat = coroutine.create(heartbeat_handler)
 
 -- TODO: Handle incorrect serial host_name, e.g. not localhost -> fail !
 coroutine_serial = coroutine.create(serial_handler)
@@ -671,6 +688,9 @@ coroutine_serial = coroutine.create(serial_handler)
 if (twitter_flag) then coroutine_twitter = coroutine.create(twitter_query) end
 
 while (coroutine.status(coroutine_serial)) ~= "dead" do
+  if (debug) then print("-- coroutine.resume(coroutine_heartbeat):") end
+  coroutine.resume(coroutine_heartbeat)
+
   if (debug) then print("-- coroutine.resume(coroutine_serial):") end
   coroutine.resume(coroutine_serial)
 
