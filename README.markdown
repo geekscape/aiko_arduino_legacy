@@ -32,6 +32,16 @@ simpler to create device specific modules that can be shared with others
 and easier to then combine and integrate them with less code changes.
 
 
+Community
+=========
+
+Please join the developer community on the
+[Aiko-Platform Google Group](http://groups.google.com/group/aiko-platform)
+and subscribe to the email list.
+
+Report bugs on our [GitHub bug tracker](http://github.com/geekscape/Aiko/issues).
+
+
 Installation
 ============
 
@@ -49,6 +59,9 @@ Alternatively you can download a tarball or ZIP archive from the Aiko
 repository by clicking the "download" link at:
 
     http://github.com/geekscape/Aiko/tree/master
+
+Note: Since Arduino IDE 0017, you can create a "libraries/" directory and
+"git clone" the Aiko repository in that directory.
 
 Upgrading
 ---------
@@ -76,10 +89,6 @@ Modules
 See the corresponding files in the docs directory for more info on each module.
 
 
-Community
-=========
-
-Report bugs on our [GitHub bug tracker](http://github.com/geekscape/Aiko/issues).
 
 Written by Andy Gelme, Jonathan Oxer, and Pete Yandell.
 
