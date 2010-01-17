@@ -121,7 +121,13 @@ using namespace Aiko;
 #endif
 
 #include <PString.h>
-char globalBuffer[200];  // Used to manage dynamically constructed strings
+#if defined (__AVR_ATmega8__) || (__AVR_ATmega168__)
+#define BUFFER_SIZE 40
+#else
+#define BUFFER_SIZE 200
+#endif
+
+char globalBuffer[BUFFER_SIZE]; // Store dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
 void (*commandHandlers[])() = {
