@@ -5,7 +5,7 @@
  * Documentation:  http://groups.google.com/group/aiko-platform
  * Documentation:  http://geekscape.org/static/arduino.html
  * License: GPLv3. http://geekscape.org/static/arduino_license.html
- * Version: 0.2
+ * Version: 0.3
  * ----------------------------------------------------------------------------
  * See Google Docs: "Project: Aiko: Stream protocol specification"
  * Currently requires an Aiko-Gateway.
@@ -44,6 +44,7 @@
  * - Implement: (update_rate SECONDS UNIT)
  * - Implement: (error on) (error off)
  * - Implement: (display_title= STRING) --> LCD position (0,0)
+ *   - Make full use of the 20 column by 4 row LCD screen
  * - Implement: (device_update NAME VALUE UNIT) or (NAME= VALUE)
  * - Implement: (profile)
  * - Implement: (clock yyyy-mm-ddThh:mm:ss)
@@ -55,13 +56,13 @@
 
 using namespace Aiko;
 
-#define IS_GATEWAY
-//#define IS_PEBBLE
+//#define IS_GATEWAY
+#define IS_PEBBLE
 //#define IS_STONE
 
 #ifdef IS_GATEWAY
 #define DEFAULT_NODE_NAME "gateway_1"
-#define DEFAULT_TRANSMIT_RATE     1  // seconds
+#define DEFAULT_TRANSMIT_RATE     15  // seconds
 #define HAS_LCD
 #define HAS_SENSORS
 #define HAS_SERIAL_MIRROR
@@ -71,11 +72,13 @@ using namespace Aiko;
 #ifdef IS_PEBBLE
 #define DEFAULT_NODE_NAME "pebble_1"
 #define DEFAULT_TRANSMIT_RATE     1  // seconds
+#define HAS_BUTTONS
 #define HAS_LCD
 #define LCD_4094      // Drive LCD wth 4094 8-bit shift register to save Arduino pins
-#define HAS_HP_LD220  // Hewlett-Packard Point-Of-Sale sign
+//#define HAS_HP_LD220  // Hewlett-Packard Point-Of-Sale sign
+#define HAS_POTENTIOMETER
 #define HAS_SENSORS
-#define HAS_SPEAKER
+//#define HAS_SPEAKER
 #endif
 
 #ifdef IS_STONE
@@ -97,18 +100,21 @@ using namespace Aiko;
 #define PIN_LIGHT_SENSOR    4
 // Digital Input/Output pins
 #define PIN_ONE_WIRE       10 // OneWire or CANBus
-#define PIN_RELAY          11
+#define PIN_RELAY_1        11
 #endif
 
 #ifdef IS_PEBBLE
 // Analogue Input pins
 #define PIN_LIGHT_SENSOR    0
+#define PIN_POTENTIOMETER   1
+#define PIN_BUTTONS         2
 // Digital Input/Output pins
 #define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
 #define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
 #define PIN_LCD_CLOCK       4 // CD4094 8-bit shift/latch
 #define PIN_ONE_WIRE        5 // OneWire or CANBus
-#define PIN_RELAY           6 // PWM output (timer 2)
+#define PIN_RELAY_1         6 // PWM output (timer 2)
+#define PIN_RELAY_2         7
 #define PIN_CONTROL_BUTTON  8 // Used for LCD menu and command
 #define PIN_SPEAKER         9 // Speaker output
 #endif
@@ -117,7 +123,7 @@ using namespace Aiko;
 // Analogue Input pins
 #define PIN_CURRENT_SENSOR_1  0 // Electrical monitoring
 // Digital Input/Output pins
-#define PIN_RELAY           3
+#define PIN_RELAY_1         3
 #endif
 
 #include <PString.h>
@@ -127,7 +133,7 @@ using namespace Aiko;
 #define BUFFER_SIZE 200
 #endif
 
-char globalBuffer[BUFFER_SIZE]; // Store dynamically constructed strings
+char globalBuffer[BUFFER_SIZE];  // Store dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
 void (*commandHandlers[])() = {
@@ -138,6 +144,9 @@ void (*commandHandlers[])() = {
   baudRateCommand,
   nodeCommand,
   relayCommand,
+#ifdef PIN_RELAY_2
+  relay2Command,
+#endif
   resetClockCommand,
   resetLcdCommand,
   transmitRateCommand
@@ -151,6 +160,9 @@ char* commands[] = {
   "baud=",
   "node=",
   "relay",
+#ifdef PIN_RELAY_2
+  "relay2",
+#endif
   "reset_clock",
   "reset_lcd",
   "transmit="
@@ -177,6 +189,9 @@ byte parameterCount[] = {  // ToDo: Change this to incorporate parameter type ?
   1,  // baud rate       (integer)
   1,  // node name       (string)
   1,  // relay state     (boolean)
+#ifdef PIN_RELAY_2
+  1,  // relay2 state    (boolean)
+#endif
   0,  // reset clock     (none)
   0,  // reset_lcd       (none)
   1   // transmit rate   (integer seconds)
@@ -193,9 +208,17 @@ void setup() {
   Events.addHandler(blinkHandler,   500);
   Events.addHandler(nodeHandler,   1000 * DEFAULT_TRANSMIT_RATE);
 
+#ifdef HAS_BUTTONS
+  Events.addHandler(buttonHandler,  100);
+#endif
+
 #ifdef HAS_LCD
   Events.addHandler(clockHandler,  1000);
   Events.addHandler(lcdHandler,    1000);
+#endif
+
+#ifdef HAS_POTENTIOMETER
+  Events.addHandler(potentiometerHandler, 100);
 #endif
 
 #ifdef HAS_SENSORS
@@ -288,6 +311,30 @@ void sendMessage(const char* message) {
   Serial.print(message);
   Serial.println(")");
 }
+
+/* -------------------------------------------------------------------------- */
+
+#ifdef HAS_BUTTONS
+int     buttonValue = 0;
+char    buttonBuffer[5];
+PString buttonState(buttonBuffer, sizeof(buttonBuffer));
+
+void buttonHandler(void) {
+  buttonValue = analogRead(PIN_BUTTONS);
+  buttonState.begin();
+  buttonState = "123 ";
+}
+#endif
+
+/* -------------------------------------------------------------------------- */
+ 
+#ifdef HAS_POTENTIOMETER
+int potentiometerValue = 0;
+
+void potentiometerHandler(void) {
+  potentiometerValue = analogRead(PIN_POTENTIOMETER);
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -426,9 +473,12 @@ void temperatureSensorHandler(void) {  // total time: 33 milliseconds
 byte relayInitialized = false;
 
 void relayInitialize(void) {
-  pinMode(PIN_RELAY,   OUTPUT);
+  pinMode(PIN_RELAY_1, OUTPUT);
+#ifdef PIN_RELAY_2
+  pinMode(PIN_RELAY_2, OUTPUT);
+#endif
 #ifdef HAS_SPEAKER
-  pinMode(PIN_SPEAKER, OUTPUT);
+  pinMode(PIN_SPEAKER_1, OUTPUT);
 #endif
 
   relayInitialized = true;
@@ -437,20 +487,35 @@ void relayInitialize(void) {
 boolean relay_state = false;
 
 void relayCommand(void) {
+  relayHandler(PIN_RELAY_1);
+}
+
+#ifdef PIN_RELAY_2
+void relay2Command(void) {
+  relayHandler(PIN_RELAY_2);
+}
+#endif
+
+void relayHandler(
+  int pinRelay) {
+
   if (relayInitialized == false) relayInitialize();
 
   if (parameter.isEqualTo("on")) {
 relay_state = true;
-    digitalWrite(PIN_RELAY, HIGH);
-    Serial.println("(relay is on)");
+    digitalWrite(pinRelay, HIGH);
+    globalString.begin();
+    globalString  = "(relay on)";
+    sendMessage(globalString);
 #ifdef HAS_SPEAKER
     playTune();
 #endif
   }
   else if (parameter.isEqualTo("off")) {
 relay_state = false;
-    digitalWrite(PIN_RELAY, LOW);
-    Serial.println("(relay is off)");
+    digitalWrite(pinRelay, LOW);
+    globalString  = "(relay off)";
+    sendMessage(globalString);
   }
   else {
 //  sendMessage("(error parameterInvalid)");
@@ -740,6 +805,30 @@ void lcdHandler(void) {
   if (temperature_fraction < 10) lcdWriteString("0");
   lcdWriteNumber(temperature_fraction);
   lcdWriteString(" C  ");
+#endif
+
+  lcdPosition(0, 20);
+  if (relay_state) {
+    lcdWriteString("A");
+  }
+  else {
+    lcdWriteString(" ");
+  }
+
+#ifdef HAS_BUTTONS
+  lcdPosition(0,20);
+  lcdWriteString("But ");
+  lcdWriteNumber(buttonValue);
+  lcdWriteString("   ");
+//  FIXME: This doesn't work lcdWriteString wants a char* and the pstring is a const char *
+//  lcdWriteString(buttonState);
+#endif
+
+#ifdef HAS_POTENTIOMETER
+  lcdPosition(0,29);
+  lcdWriteString("Pot ");
+  lcdWriteNumber(potentiometerValue);
+  lcdWriteString("   ");
 #endif
 }
 
