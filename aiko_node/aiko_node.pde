@@ -16,13 +16,13 @@
  * These libraries are not included in the Arduino IDE and
  * need to be downloaded and installed separately.
  *
- * - LiquidCrystal
+ * - LiquidCrystal (now included as part of Arduino 0017 onwards)
  *   http://arduino.cc/en/Reference/LiquidCrystal
  *
- * - One-Wire
+ * - One-Wire (look for "most recent version" text for download link)
  *   http://www.arduino.cc/playground/Learning/OneWire
  *
- * - NewSoftSerial
+ * - NewSoftSerial (download is at the bottom of the web page)
  *   http://arduiniana.org/libraries/newsoftserial
  *
  * - PString
