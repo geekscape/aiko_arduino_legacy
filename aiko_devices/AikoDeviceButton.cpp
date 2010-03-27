@@ -1,3 +1,13 @@
+/*
+ * To Do
+ * ~~~~~
+ * - Turn raw button value into a meaningful output.
+ * - Handle button debounce.
+ * - When button value changes ...
+ *   - Update display.
+ *   - Send communications message.
+ */
+
 // #include "../../libraries/PString/PString.h"
 
 int     buttonValue = 0;
