@@ -5,10 +5,11 @@
 
 namespace Aiko {
   namespace Device {
-    SExpression parameter;                 // Temporary: Needed by commands
+    SExpression parameter;                    // Temporary: Needed by commands
 
 #include "aiko_devices/AikoDeviceBlink.cpp"
-#include "aiko_devices/AikoDeviceClock.cpp"  // Not really a device
-#include "aiko_devices/AikoDeviceNode.cpp"   // Not really a device
+#include "aiko_devices/AikoDeviceButton.cpp"
+#include "aiko_devices/AikoDeviceClock.cpp"   // Not really a device
+#include "aiko_devices/AikoDeviceNode.cpp"    // Not really a device
   }
 }
