@@ -1,5 +1,3 @@
-#include <aiko_devices/AikoDeviceClock.h>
-
 byte second = 0;
 byte minute = 0;
 byte hour   = 0;

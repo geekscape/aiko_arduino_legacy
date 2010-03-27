@@ -1,7 +1,3 @@
-#include <aiko_devices/AikoDeviceBlink.h>
-
-#define PIN_LED_STATUS  13 // Standard Arduino flashing LED !
-
 byte blinkInitialized = false;
 byte blinkStatus      = LOW;
 
