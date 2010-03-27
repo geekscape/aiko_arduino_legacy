@@ -695,7 +695,7 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
 void lcdInitialize(void) {
   lcdInitialized = true;
 
-  pinMode(OUTPUT, 11);
+  pinMode(11, OUTPUT);
   digitalWrite(11, HIGH);
 
   lcd.begin(16, 2);
