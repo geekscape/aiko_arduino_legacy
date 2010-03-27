@@ -1,0 +1,1 @@
+void blinkHandler(void);
