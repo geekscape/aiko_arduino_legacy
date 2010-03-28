@@ -51,15 +51,6 @@
  * - Improve error handling.
  */
 
-#include <AikoCommands.h>
-#include <AikoDevices.h>
-#include <AikoEvents.h>
-#include <AikoSExpression.h>
-
-using namespace Aiko;
-using namespace Command;
-using namespace Device;
-
 //#define IS_GATEWAY
 #define IS_PEBBLE
 //#define IS_STONE
@@ -76,7 +67,7 @@ using namespace Device;
 #ifdef IS_PEBBLE
 #define DEFAULT_NODE_NAME "pebble_1"
 #define DEFAULT_TRANSMIT_RATE     1  // seconds
-#define HAS_BUTTONS
+#define ENABLE_AIKO_DEVICE_BUTTON
 #define HAS_LCD
 #define LCD_4094      // Drive LCD wth 4094 8-bit shift register to save Arduino pins
 //#define HAS_HP_LD220  // Hewlett-Packard Point-Of-Sale sign
@@ -138,6 +129,15 @@ using namespace Device;
 char globalBuffer[BUFFER_SIZE];  // Store dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
+#include <AikoCommands.h>
+#include <AikoDevices.h>
+#include <AikoEvents.h>
+#include <AikoSExpression.h>
+
+using namespace Aiko;
+using namespace Command;
+using namespace Device;
+
 #include <AikoCommandsHack.h>
 
 void setup() {
@@ -147,8 +147,8 @@ void setup() {
   Events.addHandler(blinkHandler,   500);
   Events.addHandler(nodeHandler,   1000 * DEFAULT_TRANSMIT_RATE);
 
-#ifdef HAS_BUTTONS
-  Events.addHandler(oldButtonHandler,  100);
+#ifdef ENABLE_AIKO_DEVICE_BUTTON
+  Events.addHandler(buttonHandler,  100);
 #endif
 
 #ifdef HAS_LCD
@@ -190,20 +190,6 @@ void loop() {
 
 /* -------------------------------------------------------------------------- */
 
-#ifdef HAS_BUTTONS
-int     oldButtonValue = 0;
-char    oldButtonBuffer[5];
-PString oldButtonState(oldButtonBuffer, sizeof(oldButtonBuffer));
-
-void oldButtonHandler(void) {
-  oldButtonValue = analogRead(PIN_BUTTONS);
-  oldButtonState.begin();
-  oldButtonState = "123 ";
-}
-#endif
-
-/* -------------------------------------------------------------------------- */
- 
 #ifdef HAS_POTENTIOMETER
 int potentiometerValue = 0;
 
@@ -703,13 +689,13 @@ void lcdHandler(void) {
     lcdWriteString(" ");
   }
 
-#ifdef HAS_BUTTONS
+#ifdef ENABLE_AIKO_DEVICE_BUTTON
   lcdPosition(0,20);
   lcdWriteString("But ");
-  lcdWriteNumber(oldButtonValue);
+  lcdWriteNumber(buttonValue);
   lcdWriteString("   ");
 //  FIXME: This doesn't work lcdWriteString wants a char* and the pstring is a const char *
-//  lcdWriteString(oldButtonState);
+//  lcdWriteString(buttonState);
 #endif
 
 #ifdef HAS_POTENTIOMETER

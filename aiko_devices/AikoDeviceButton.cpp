@@ -10,9 +10,11 @@
 
 // #include "../../libraries/PString/PString.h"
 
+#ifdef ENABLE_AIKO_DEVICE_BUTTON
 int     buttonValue = 0;
 char    buttonBuffer[5];
 // PString buttonState(buttonBuffer, sizeof(buttonBuffer));
+#endif
 
 void buttonHandler(void) {
   buttonValue = analogRead(PIN_BUTTONS);

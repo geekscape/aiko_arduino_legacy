@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define ENABLE_AIKO_DEVICE_BUTTON
+
 namespace Aiko {
   namespace Device {
 #include "aiko_devices/AikoDeviceBlink.h"
