@@ -1,3 +1,9 @@
+/*
+ * To Do
+ * ~~~~~
+ * - Consider moving "sendMessage()" to AikoMessage.cpp.
+ */
+
 char nodeName[40] = DEFAULT_NODE_NAME;
 
 void nodeHandler(void) {
