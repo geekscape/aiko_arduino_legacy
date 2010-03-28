@@ -51,10 +51,12 @@
  * - Improve error handling.
  */
 
+#include <AikoDevices.h>
 #include <AikoEvents.h>
 #include <AikoSExpression.h>
 
 using namespace Aiko;
+using namespace Device;
 
 //#define IS_GATEWAY
 #define IS_PEBBLE
@@ -93,7 +95,6 @@ using namespace Aiko;
 // Digital Input/Output pins
 #define PIN_SERIAL_RX       0
 #define PIN_SERIAL_TX       1
-#define PIN_LED_STATUS     13 // Standard Arduino flashing LED !
 
 #ifdef IS_GATEWAY
 // Analogue Input pins
@@ -107,7 +108,6 @@ using namespace Aiko;
 // Analogue Input pins
 #define PIN_LIGHT_SENSOR    0
 #define PIN_POTENTIOMETER   1
-#define PIN_BUTTONS         2
 // Digital Input/Output pins
 #define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
 #define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
@@ -136,70 +136,7 @@ using namespace Aiko;
 char globalBuffer[BUFFER_SIZE];  // Store dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
-void (*commandHandlers[])() = {
-#ifdef HAS_LCD
-  alertCommand,
-  displayCommand,
-#endif
-  baudRateCommand,
-  nodeCommand,
-  relayCommand,
-#ifdef PIN_RELAY_2
-  relay2Command,
-#endif
-  resetClockCommand,
-  resetLcdCommand,
-  transmitRateCommand
-};
-
-char* commands[] = {
-#ifdef HAS_LCD
-  "alert",
-  "display",
-#endif
-  "baud=",
-  "node=",
-  "relay",
-#ifdef PIN_RELAY_2
-  "relay2",
-#endif
-  "reset_clock",
-  "reset_lcd",
-  "transmit="
-};
-
-char* eepromKeyword[] = {
-#ifdef HAS_LCD
-  0,
-  0,
-#endif
-  0,  // "bd",
-  "nd",
-  0,
-  0,
-  0,
-  0   // "tr"
-};
-
-byte parameterCount[] = {  // ToDo: Change this to incorporate parameter type ?
-#ifdef HAS_LCD
-  1,  // alert message   (string)
-  1,  // display message (string)
-#endif
-  1,  // baud rate       (integer)
-  1,  // node name       (string)
-  1,  // relay state     (boolean)
-#ifdef PIN_RELAY_2
-  1,  // relay2 state    (boolean)
-#endif
-  0,  // reset clock     (none)
-  0,  // reset_lcd       (none)
-  1   // transmit rate   (integer seconds)
-};
-
-byte commandCount = sizeof(commands) / sizeof(*commands);
-
-SExpression parameter;
+#include <AikoCommands.h>
 
 void setup() {
 //analogReference(EXTERNAL);
@@ -209,7 +146,7 @@ void setup() {
   Events.addHandler(nodeHandler,   1000 * DEFAULT_TRANSMIT_RATE);
 
 #ifdef HAS_BUTTONS
-  Events.addHandler(buttonHandler,  100);
+  Events.addHandler(oldButtonHandler,  100);
 #endif
 
 #ifdef HAS_LCD
@@ -251,82 +188,15 @@ void loop() {
 
 /* -------------------------------------------------------------------------- */
 
-byte blinkInitialized = false;
-byte blinkStatus      = LOW;
-
-void blinkInitialize(void) {
-  pinMode(PIN_LED_STATUS, OUTPUT);
-
-  blinkInitialized = true;
-}
-
-void blinkHandler(void) {
-  if (blinkInitialized == false) blinkInitialize();
-
-  blinkStatus = ! blinkStatus;
-  digitalWrite(PIN_LED_STATUS, blinkStatus);
-}
-
-/* -------------------------------------------------------------------------- */
-
-byte second = 0;
-byte minute = 0;
-byte hour   = 0;
-
-void clockHandler(void) {
-  if ((++ second) == 60) {
-    second = 0;
-    if ((++ minute) == 60) {
-      minute = 0;
-      if ((++ hour) == 100) hour = 0;  // Max: 99 hours, 59 minutes, 59 seconds
-    }
-  }
-}
-
-void resetClockCommand(void) {
-  second = minute = hour = 0;
-}
-
-/* -------------------------------------------------------------------------- */
-
-char nodeName[40] = DEFAULT_NODE_NAME;
-
-void nodeHandler(void) {
-  sendMessage("");
-}
-
-void nodeCommand(void) {
-  char* parameterString = parameter.head();
-
-  for (byte index = 0; index < sizeof(nodeName); index ++) {
-    if (index == parameter.size()) {
-      nodeName[index] = '\0';
-      break;
-    }
-
-    nodeName[index] = *parameterString ++;
-  }
-}
-
-void sendMessage(const char* message) {
-  Serial.print("(node ");
-  Serial.print(nodeName);
-  Serial.print(" ? ");
-  Serial.print(message);
-  Serial.println(")");
-}
-
-/* -------------------------------------------------------------------------- */
-
 #ifdef HAS_BUTTONS
-int     buttonValue = 0;
-char    buttonBuffer[5];
-PString buttonState(buttonBuffer, sizeof(buttonBuffer));
+int     oldButtonValue = 0;
+char    oldButtonBuffer[5];
+PString oldButtonState(oldButtonBuffer, sizeof(oldButtonBuffer));
 
-void buttonHandler(void) {
-  buttonValue = analogRead(PIN_BUTTONS);
-  buttonState.begin();
-  buttonState = "123 ";
+void oldButtonHandler(void) {
+  oldButtonValue = analogRead(PIN_BUTTONS);
+  oldButtonState.begin();
+  oldButtonState = "123 ";
 }
 #endif
 
@@ -834,10 +704,10 @@ void lcdHandler(void) {
 #ifdef HAS_BUTTONS
   lcdPosition(0,20);
   lcdWriteString("But ");
-  lcdWriteNumber(buttonValue);
+  lcdWriteNumber(oldButtonValue);
   lcdWriteString("   ");
 //  FIXME: This doesn't work lcdWriteString wants a char* and the pstring is a const char *
-//  lcdWriteString(buttonState);
+//  lcdWriteString(oldButtonState);
 #endif
 
 #ifdef HAS_POTENTIOMETER
