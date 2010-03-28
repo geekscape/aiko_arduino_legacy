@@ -1,8 +1,8 @@
-#include <AikoDevices.h>
+#include <AikoCommands.h>
 #include <AikoEvents.h>
 
 using namespace Aiko;
-using namespace Device;
+using namespace Command;
 
 void setup() {
   Serial.begin(38400);

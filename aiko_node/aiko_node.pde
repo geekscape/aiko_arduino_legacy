@@ -51,11 +51,13 @@
  * - Improve error handling.
  */
 
+#include <AikoCommands.h>
 #include <AikoDevices.h>
 #include <AikoEvents.h>
 #include <AikoSExpression.h>
 
 using namespace Aiko;
+using namespace Command;
 using namespace Device;
 
 //#define IS_GATEWAY
@@ -136,7 +138,7 @@ using namespace Device;
 char globalBuffer[BUFFER_SIZE];  // Store dynamically constructed strings
 PString globalString(globalBuffer, sizeof(globalBuffer));
 
-#include <AikoCommands.h>
+#include <AikoCommandsHack.h>
 
 void setup() {
 //analogReference(EXTERNAL);

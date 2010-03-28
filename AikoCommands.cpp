@@ -1,10 +1,11 @@
-/*
- * To Do
- * ~~~~~
- * - Convert existing temporary hack to something more like AikoEvents !
- */
+#include "WProgram.h"
 
-// #include "AikoCommands.h"
+#include "AikoCommands.h"
 
 namespace Aiko {
+  namespace Command {
+    SExpression parameter;
+
+#include "aiko_commands/AikoCommandNode.cpp"
+  }
 }
