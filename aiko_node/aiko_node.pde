@@ -71,7 +71,7 @@
 #define HAS_LCD
 #define LCD_4094      // Drive LCD wth 4094 8-bit shift register to save Arduino pins
 //#define HAS_HP_LD220  // Hewlett-Packard Point-Of-Sale sign
-#define HAS_POTENTIOMETER
+#define ENABLE_AIKO_DEVICE_POTENTIOMETER
 #define HAS_SENSORS
 //#define HAS_SPEAKER
 #endif
@@ -100,7 +100,6 @@
 #ifdef IS_PEBBLE
 // Analogue Input pins
 #define PIN_LIGHT_SENSOR    0
-#define PIN_POTENTIOMETER   1
 // Digital Input/Output pins
 #define PIN_LCD_STROBE      2 // CD4094 8-bit shift/latch
 #define PIN_LCD_DATA        3 // CD4094 8-bit shift/latch
@@ -160,7 +159,7 @@ void setup() {
   Events.addHandler(pebbleLedHandler,    5000); //can't be faster than lcdHandler
 #endif
 
-#ifdef HAS_POTENTIOMETER
+#ifdef ENABLE_AIKO_DEVICE_POTENTIOMETER
   Events.addHandler(potentiometerHandler, 100);
 #endif
 
@@ -187,16 +186,6 @@ void setup() {
 void loop() {
   Events.loop();
 }
-
-/* -------------------------------------------------------------------------- */
-
-#ifdef HAS_POTENTIOMETER
-int potentiometerValue = 0;
-
-void potentiometerHandler(void) {
-  potentiometerValue = analogRead(PIN_POTENTIOMETER);
-}
-#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -698,7 +687,7 @@ void lcdHandler(void) {
 //  lcdWriteString(buttonState);
 #endif
 
-#ifdef HAS_POTENTIOMETER
+#ifdef ENABLE_AIKO_DEVICE_POTENTIOMETER
   lcdPosition(0,29);
   lcdWriteString("Pot ");
   lcdWriteNumber(potentiometerValue);
