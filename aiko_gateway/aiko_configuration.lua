@@ -17,6 +17,9 @@
 -------------------------------------------------------------------------
   site_token = "site_unknown"
 
+-- Time allowed for site discovery, before giving up 
+  site_discovery_gracetime = 600.0  -- seconds
+
 -- Aiko-Node: Serial connection sample time
   serial_timeout_period = 15.0  -- seconds
 

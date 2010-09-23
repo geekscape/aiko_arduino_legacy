@@ -222,9 +222,13 @@ end
 
 -- ------------------------------------------------------------------------- --
 
+send_message_disabled = false
+
 function send_message(message)
   local http = require("socket.http")
   local response = {}
+
+  if (send_message_disabled) then return end
 
   if (debug) then print("-- send_message(): start") end
 
@@ -309,6 +313,14 @@ function send_message(message)
 
     if (response == "(status okay)") then
       if (debug) then print("-- send_message(): status: okay") end
+    elseif (response:sub(1, 14) == "(status error ") then
+      local error = response:sub(15, -2)
+
+      if (error == "no_site_token") then
+        site_discovery_timeout()
+      else
+        print("Status: Error: ", error)
+      end
     else
       print("Error: HTTP response: ", response)
     end
@@ -347,6 +359,23 @@ function save_site_token(new_site_token)
     assert(output:close())
 
     if (debug) then print("-- save_site_token(): saved " .. site_token) end
+  end
+end
+
+-- ------------------------------------------------------------------------- --
+
+site_discovery_timer = 0
+
+function site_discovery_timeout()
+  if (debug) then print("-- site_discovery_timeout():") end
+
+  if (site_discovery_timer == 0) then
+    site_discovery_timer = os.time() + site_discovery_gracetime
+  else
+    if (os.time() > site_discovery_timer) then
+      send_message_disabled = true
+      if (debug) then print("-- site_discovery_timeout(): expired") end
+    end
   end
 end
 
@@ -691,7 +720,7 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-print("[Aiko-Gateway V0.3 2010-09-23]");
+print("[Aiko-Gateway V0.3 2010-09-23]")
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
