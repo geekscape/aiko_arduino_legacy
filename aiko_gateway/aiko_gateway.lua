@@ -301,8 +301,7 @@ function send_message(message)
       response = response:sub(finish + 1)
 
 -- Parse and save new site token
-      site_token = message:sub(8, -2)
-      save_site_token()
+      save_site_token(message:sub(8, -2))
       if (debug) then
         print("-- parse_message(): new site token: " .. site_token)
       end
@@ -339,10 +338,16 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-function save_site_token()
-  local output = assert(io.open("aiko_configuration.lua", "a"))
-  output:write("  site_token = \"" .. site_token .. "\"\n")
-  assert(output:close())
+function save_site_token(new_site_token)
+  if (new_site_token ~= site_token) then
+    site_token = new_site_token
+
+    local output = assert(io.open("aiko_configuration.lua", "a"))
+    output:write("  site_token = \"" .. site_token .. "\"\n")
+    assert(output:close())
+
+    if (debug) then print("-- save_site_token(): saved " .. site_token) end
+  end
 end
 
 -- ------------------------------------------------------------------------- --
