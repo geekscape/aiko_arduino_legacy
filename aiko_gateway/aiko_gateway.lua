@@ -322,7 +322,7 @@ end
 function send_event_boot(node_name)
   if (debug) then print("-- send_event_boot(): " .. node_name) end
 
-  message = "(status boot)"
+  message = "(status boot 0.3)"
   send_message(wrap_message(message, node_name))
 end
 
