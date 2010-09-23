@@ -6,7 +6,7 @@
 -- Copyright (c) 2009 by Geekscape Pty. Ltd.
 -- Documentation:  http://groups.google.com/group/aiko-platform
 -- License: GPLv3. http://geekscape.org/static/arduino_license.html
--- Version: 0.2
+-- Version: 0.3
 -- ------------------------------------------------------------------------- --
 -- See Google Docs: "Project: Aiko: Stream protocol specification"
 -- Currently requires an Aiko Gateway (indirect mode only).
@@ -663,7 +663,7 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-print("[Aiko-Gateway V0.2 2009-12-24]");
+print("[Aiko-Gateway V0.3 2010-04-14]");
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
