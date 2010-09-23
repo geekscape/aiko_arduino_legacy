@@ -234,7 +234,7 @@ function send_message(message)
     url = url,
     method = method,
     headers = {
-      ["content-length"] = string.len(message),
+      ["content-length"] = message:len(),
       ["content-type"]   = content_type
     },
 --  source = ltn12.source.file(io.open(file_name, "r")),
@@ -309,7 +309,7 @@ end
 function send_event_boot(node_name)
   if (debug) then print("-- send_event_boot(): " .. node_name) end
 
-  message = "(boot_event 0 number)"
+  message = "(status boot)"
   send_message(wrap_message(message, node_name))
 end
 
@@ -318,7 +318,8 @@ end
 function send_event_heartbeat(node_name)
   if (debug) then print("-- send_event_heartbeat(): " .. node_name) end
 
-  message = "(cpu_usage 0 %) (node_count 1 number)"
+--message = "(cpu_usage 0 %) (node_count 1 number)"
+  message = "(status heartbeat)"
   send_message(wrap_message(message, node_name))
 end
 
@@ -663,7 +664,7 @@ end
 
 -- ------------------------------------------------------------------------- --
 
-print("[Aiko-Gateway V0.3 2010-04-14]");
+print("[Aiko-Gateway V0.3 2010-09-23]");
 
 if (not is_production()) then require("luarocks.require") end
 require("socket")
