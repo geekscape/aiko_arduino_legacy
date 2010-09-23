@@ -300,8 +300,9 @@ function send_message(message)
       local message = response:sub(1, start - 1)
       response = response:sub(finish + 1)
 
--- Parse new site token
+-- Parse and save new site token
       site_token = message:sub(8, -2)
+      save_site_token()
       if (debug) then
         print("-- parse_message(): new site token: " .. site_token)
       end
@@ -334,6 +335,14 @@ function send_event_heartbeat(node_name)
 --message = "(cpu_usage 0 %) (node_count 1 number)"
   message = "(status heartbeat)"
   send_message(wrap_message(message, node_name))
+end
+
+-- ------------------------------------------------------------------------- --
+
+function save_site_token()
+  local output = assert(io.open("aiko_configuration.lua", "a"))
+  output:write("  site_token = \"" .. site_token .. "\"\n")
+  assert(output:close())
 end
 
 -- ------------------------------------------------------------------------- --
