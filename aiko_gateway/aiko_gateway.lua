@@ -294,6 +294,19 @@ function send_message(message)
       end
     end
 
+-- Check response wrapped by site command, e..g (site= new_site_token)
+    if (response:sub(1, 7) == "(site= ") then
+      local start, finish = response:find("\n", 1, PLAIN)
+      local message = response:sub(1, start - 1)
+      response = response:sub(finish + 1)
+
+-- Parse new site token
+      site_token = message:sub(8, -2)
+      if (debug) then
+        print("-- parse_message(): new site token: " .. site_token)
+      end
+    end
+
     if (response == "(status okay)") then
       if (debug) then print("-- send_message(): status: okay") end
     else
