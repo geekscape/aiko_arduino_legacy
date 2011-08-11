@@ -1,3 +1,4 @@
-applet
 *.o
 *.swp
+applet
+readme.html
