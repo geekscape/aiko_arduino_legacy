@@ -27,6 +27,6 @@ namespace Aiko {
       digitalWrite(slaveSelectPin_, HIGH); // Slave select is active low.
       isSetUp_ = true;
     }
-  
+
   };
 };

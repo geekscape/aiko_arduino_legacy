@@ -23,5 +23,5 @@ void setup() {
 }
 
 void loop() {
-  Events.loop(); 
+  Events.loop();
 }

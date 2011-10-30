@@ -58,21 +58,21 @@ namespace Aiko {
     counter.overflowCountdown = timer1Counter.overflowCountdown;
     counter.intervalCount     = timer1Counter.intervalCount;
     SREG = oldSREG;
-  
+
     extraTicks += (unsigned int)(OVERFLOWS_PER_INTERVAL - counter.overflowCountdown) << 8;
     unsigned int extraMillis = extraTicks / TICKS_PER_MILLISECOND;
-    
+
     return (counter.intervalCount << MILLISECONDS_PER_INTERVAL_SHIFT) + extraMillis;
   }
 
   void TimingManager::setup() {
     timer1Counter.intervalCount = 0;
-    timer1Counter.overflowCountdown = OVERFLOWS_PER_INTERVAL;    
+    timer1Counter.overflowCountdown = OVERFLOWS_PER_INTERVAL;
 
     bitSet  (TCCR1B, WGM12); // Put timer 1 in Fast PWM, 8-bit mode.
     bitClear(TCCR1A, WGM11);
     bitSet  (TCCR1A, WGM10);
- 
+
     bitSet  (TIMSK1, TOIE1); // Enable timer 1 overflow interrupts.
 
     isSetUp_ = true;

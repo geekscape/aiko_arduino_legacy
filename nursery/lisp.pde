@@ -9,13 +9,13 @@ void setup() {
 void println(char* buffer, int length) {
   for (int i = 0; i < length; i++)
     Serial.write(buffer[i]);
-  Serial.println();  
+  Serial.println();
 }
 
 void loop() {
   static char buffer[64];
   static int i = 0;
- 
+
   while (!Serial.available());
   char c = Serial.read();
   if (c == ';') {

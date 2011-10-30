@@ -3,7 +3,7 @@
 
 using namespace Aiko;
 
-/*   
+/*
   SExpressionArray
     should fail gracefully with no closing bracket
     should fail gracefully with extra closing brackets
@@ -13,33 +13,33 @@ using namespace Aiko;
 class SExpressionTests : public CxxTest::TestSuite {
 public:
   /* SExpression tests */
-    
+
   void test_expression_should_scan_a_token_terminated_by_end_of_string() {
     char *a = "testing";
     char *b = a + strlen(a);
 
-    SExpression expression;        
+    SExpression expression;
     char *s = expression.scan(a, b);
     TS_ASSERT_EQUALS(expression.head(), a);
     TS_ASSERT_EQUALS(expression.tail(), b);
     TS_ASSERT_EQUALS(s, b);
   }
-  
+
   void test_expression_should_scan_atom_terminated_by_space() {
     char *a = "testing ";
     char *b = a + strlen(a);
-    
+
     SExpression expression;
     char *s = expression.scan(a, b);
     TS_ASSERT_EQUALS(expression.head(), a);
     TS_ASSERT_EQUALS(expression.tail(), b-1);
     TS_ASSERT_EQUALS(s, b);
   }
- 
+
   void test_should_scan_atom_terminated_by_bracket() {
     char *a = "testing)";
     char *b = a + strlen(a);
-      
+
     SExpression expression;
     char *s = expression.scan(a, b);
     TS_ASSERT_EQUALS(expression.head(), a);
@@ -75,7 +75,7 @@ public:
     TS_ASSERT_EQUALS(array.length(), 1);
     TS_ASSERT_EQUALS(s, a + strlen(a));
   }
-    
+
   void test_array_should_parse_an_expression_with_multiple_atoms() {
     char *a = "(the quick brown fox)";
     SExpressionArray array;
@@ -86,17 +86,17 @@ public:
     TS_ASSERT(array[2].isEqualTo("brown"));
     TS_ASSERT(array[3].isEqualTo("fox"));
   }
-  
+
   void test_array_should_parse_nested_expressions() {
     char *a = "(the (quick brown) fox)";
-    
+
     SExpressionArray array;
     array.parse(a);
     TS_ASSERT_EQUALS(array.length(), 3);
     TS_ASSERT(array[0].isEqualTo("the"));
     TS_ASSERT(array[1].isArray());
     TS_ASSERT(array[2].isEqualTo("fox"));
-    
+
     SExpressionArray subArray;
     subArray.parse(array[1]);
     TS_ASSERT_EQUALS(subArray.length(), 2);
@@ -112,7 +112,7 @@ public:
     TS_ASSERT(array[0].isEqualTo("test"));
     TS_ASSERT_EQUALS(s, a + strlen(a));
   }
-    
+
   void test_array_should_ignore_space_before_closing_brackets() {
     char* a = "(test )";
     SExpressionArray array;

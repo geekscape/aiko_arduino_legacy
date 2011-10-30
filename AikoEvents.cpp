@@ -32,7 +32,7 @@ namespace Aiko {
     while (lastHandler->next_) lastHandler = lastHandler->next_;
     return lastHandler;
   }
-  
+
   EventHandler* EventHandlerList::next() {
     EventHandler* handler = nextHandler_;
     if (handler) nextHandler_ = handler->next_;
@@ -56,7 +56,7 @@ namespace Aiko {
   /* EventManager */
 
   EventManager Events;
- 
+
   void EventManager::addHandler(EventHandler* handler) {
     handlerList_.add(handler);
   }
@@ -79,7 +79,7 @@ namespace Aiko {
 
     handlerList_.resetIterator();
     while (EventHandler* handler = handlerList_.next()) handler->countdown_ -= elapsed;
-      
+
     handlerList_.resetIterator();
     while (EventHandler* handler = handlerList_.next()) {
       if (handler->countdown_ <= 0) {
@@ -109,5 +109,5 @@ namespace Aiko {
     lastLoopTime_ = time;
     isRunning_ = true;
   }
-  
+
 };

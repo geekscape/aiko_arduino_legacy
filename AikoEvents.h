@@ -7,7 +7,7 @@
 using namespace std;
 
 namespace Aiko {
-  
+
   struct EventHandler {
     Callback callback_;
     unsigned int period_;
@@ -43,7 +43,7 @@ namespace Aiko {
       void loop(unsigned long time = Timing.millis());
       void removeHandler(EventHandler* handler);
       void reset();
-      
+
     private:
       void start(unsigned long time);
       void loopRepeatingHandler(EventHandler* handler);
@@ -53,9 +53,9 @@ namespace Aiko {
       unsigned long     lastLoopTime_;
       EventHandlerList  handlerList_;
   };
-  
+
   extern EventManager Events;
-  
+
 };
 
 #endif

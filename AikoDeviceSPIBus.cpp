@@ -28,9 +28,9 @@ namespace Aiko {
 
       digitalWrite(mosiPin_, LOW);
       digitalWrite(sclkPin_, LOW);
-    
+
       bitClear(SPSR, SPI2X);    // Double SPI Speed      (off)
-    
+
       SPCR = bitValue(SPE,  1)  // SPI Enable            (on)
            | bitValue(SPIE, 0)  // Interrupt Enable      (off)
            | bitValue(DORD, 0)  // Data Order            (MSB first)
@@ -42,18 +42,18 @@ namespace Aiko {
 
       isSetUp_ = true;
     }
-    
+
     unsigned char SPIBusManager::transfer(unsigned char output) {
       if (!isSetUp_) setup();
       // FIXME: We shouldn't need to set the master flag before each write,
       // but it seems to get pulled low sometimes. There's a danger that
       // it'll get pulled low between the bitSet and SPDR being set, which
       // would cause a lockup.
-      // 
+      //
       // In theory, as long as we have the SS line set high, the MSTR flag
       // should never be pulled low. I'd love to know why it happens
       // sometimes.
-      // 
+      //
       // A good safety valve would be to check the MSTR flag in the loop,
       // and bomb out if it's low.
       // bitSet(SPCR, MSTR);
