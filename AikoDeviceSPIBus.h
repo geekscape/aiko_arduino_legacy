@@ -3,12 +3,12 @@
 
 namespace Aiko {
   namespace Device {
-    
+
     class SPIBusManager {
       public:
         SPIBusManager(unsigned char sclkPin, unsigned char misoPin, unsigned char mosiPin, unsigned char ssPin);
         unsigned char transfer(unsigned char output);
-        
+
       private:
         void setup();
 

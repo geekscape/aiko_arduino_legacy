@@ -22,7 +22,7 @@ Goals
 - Simple translation to/from JSON
 - Simple mapping to/from XML
 
-  
+
 
 
 

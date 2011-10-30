@@ -36,7 +36,7 @@ To create a method callback, do this:
     }
 
     MyClass myObject;
-    
+
     Callback myCallback = methodCallback(myObject, &MyClass::myMethod);
 
 Invoke the callback the same way as for a function callback:

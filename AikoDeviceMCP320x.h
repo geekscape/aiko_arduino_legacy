@@ -8,10 +8,10 @@ namespace Aiko {
       public:
         MCP320x(unsigned char slaveSelectPin);
         unsigned int readChannel(unsigned char channel);
-      
+
       private:
         void setup();
-  
+
         unsigned char slaveSelectPin_;
         bool          isSetUp_;
     };

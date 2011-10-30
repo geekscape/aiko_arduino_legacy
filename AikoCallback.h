@@ -37,7 +37,7 @@ namespace Aiko {
       };
   };
 
-  
+
   /* Function Callbacks */
 
   class FunctionCallback : public Callback {

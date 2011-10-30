@@ -23,7 +23,7 @@ namespace Aiko {
   unsigned char SExpression::isEqualTo(char* s) {
     return size() == strlen(s) && strncmp(s, head_, size()) == 0;
   }
-  
+
   char* SExpression::scanRawString(char* head, char* tail, SExpression* expression) {
     char* s;
     for (s = head; s < tail && *s != ' ' && *s != ')'; s++);
@@ -34,7 +34,7 @@ namespace Aiko {
     }
     return s;
   }
-  
+
   char* SExpression::scanArray(char* head, char* tail, SExpression* expression) {
     char* s = SExpressionArray::parse(head, tail, 0);
     if (expression) {
@@ -44,7 +44,7 @@ namespace Aiko {
     }
     return s;
   }
-  
+
   char* SExpression::skipWhitespace(char* head, char* tail) {
     while (head < tail && *head == ' ') head++;
     return head;
@@ -55,29 +55,29 @@ namespace Aiko {
     expressions_ = expressions;
     isMalloced_  = false;
   }
-    
+
   SExpressionArray::SExpressionArray(unsigned char maxLength) {
     maxLength_   = maxLength;
     expressions_ = static_cast<SExpression*>(calloc(maxLength_, sizeof(SExpression)));
     isMalloced_  = true;
   }
-  
+
   SExpressionArray::~SExpressionArray() {
     if (isMalloced_) free(expressions_);
   }
-  
+
   char* SExpressionArray::parse(char* head, char* tail, SExpressionArray* array) {
     char* s = skipWhitespace(head, tail);
     if (array) array->head_ = s;
     if (s < tail && *s == '(') {
       s++;
-  
+
       if(array) array->length_ = 0;
       while (s < tail && *s != ')') {
         SExpression* expression = array ? &(array->expressions_[array->length_++]) : 0;
         s = SExpression::scan(s, tail, expression);
       }
-  
+
       if (s < tail && *s == ')') {
         if (array) array->tail_ = s;
         s = skipWhitespace(++s, tail);
