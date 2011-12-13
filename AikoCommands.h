@@ -1,8 +1,10 @@
 #ifndef AikoCommands_h
 #define AikoCommands_h
 
-#ifndef Wiring_h
+#if ARDUINO < 100
 #include "wiring.h"
+#else
+#include "wiring_private.h"
 #endif
 
 #include "AikoSExpression.h"

@@ -1,6 +1,10 @@
 #include "AikoTiming.h"
 #include <avr/interrupt.h>
-#include <wiring.h>
+#if ARDUINO < 100
+#include "wiring.h"
+#else
+#include "wiring_private.h"
+#endif
 
 namespace Aiko {
 

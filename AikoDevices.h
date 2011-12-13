@@ -1,8 +1,10 @@
 #ifndef AikoDevices_h
 #define AikoDevices_h
 
-#ifndef Wiring_h
+#if ARDUINO < 100
 #include "wiring.h"
+#else
+#include "wiring_private.h"
 #endif
 
 using namespace std;
