@@ -80,8 +80,8 @@ Change into your Arduino libraries folder and use git to clone the project.
 
 On a Mac this looks like:
 
-    cd /Applications/arduino-0022/hardware/libraries
-    git clone git://github.com/geekscape/aiko_arduino.git
+    cd /Applications/Arduino.app/libraries
+    git clone git@github.com:nihaopaul/aiko_arduino.git
 
 On Linux, this will directory will be wherever you install your Arduino
 software.
@@ -99,7 +99,7 @@ Upgrading
 ---------
 To upgrade to the latest version:
 
-    cd /Applications/arduino-0022/hardware/libraries/aiko_arduino
+    cd /Applications/Arduino.app/libraries/aiko_arduino
     git pull
     make clean
 
@@ -124,6 +124,8 @@ Known problems
 - TO DO
 
 Written by Andy Gelme and Pete Yandell.
+
+Updated by Paul Adams - 2011
 
 Copyright (C) 2009 by Geekscape Pty. Ltd.
 

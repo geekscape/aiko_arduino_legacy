@@ -1,5 +1,9 @@
 #include "AikoDeviceSPIBus.h"
-#include <wiring.h>
+#if ARDUINO < 100
+#include "wiring.h"
+#else
+#include "wiring_private.h"
+#endif
 
 #define bitValue(bit, bitValue) ((bitValue) ? (1UL << (bit)) : 0)
 

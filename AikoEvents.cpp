@@ -1,8 +1,11 @@
 #include "AikoEvents.h"
 #include "AikoTiming.h"
 #include <stdlib.h>
-#include <wiring.h>
-
+#if ARDUINO < 100
+#include "wiring.h"
+#else
+#include "wiring_private.h"
+#endif
 namespace Aiko {
 
   /* EventHanderList */

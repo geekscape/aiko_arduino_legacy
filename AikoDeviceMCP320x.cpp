@@ -1,6 +1,12 @@
 #include "AikoDeviceMCP320x.h"
 #include "AikoDeviceSPIBus.h"
-#include <wiring.h>
+#if ARDUINO < 100
+#include "wiring.h"
+#else
+#include "wiring_private.h"
+#endif
+
+
 
 namespace Aiko {
   namespace Device {
