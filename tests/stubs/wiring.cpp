@@ -1,1 +1,1 @@
-#include <wiring.h>
+#include <Arduino.h>

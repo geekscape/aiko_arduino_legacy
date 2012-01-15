@@ -1,7 +1,8 @@
 #include "AikoEvents.h"
 #include "AikoTiming.h"
+
 #include <stdlib.h>
-#include <wiring.h>
+#include "Arduino.h"
 
 namespace Aiko {
 

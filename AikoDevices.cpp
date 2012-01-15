@@ -1,4 +1,4 @@
-#include "WProgram.h"
+#include "Arduino.h"
 
 #include <AikoDevices.h>
 

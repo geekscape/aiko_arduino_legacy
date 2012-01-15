@@ -1,5 +1,5 @@
 #include "AikoDeviceSPIBus.h"
-#include <wiring.h>
+#include <Arduino.h>
 
 #define bitValue(bit, bitValue) ((bitValue) ? (1UL << (bit)) : 0)
 

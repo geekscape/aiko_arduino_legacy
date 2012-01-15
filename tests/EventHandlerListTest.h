@@ -1,5 +1,5 @@
 #include <cxxtest/TestSuite.h>
-#include <wiring.h>
+#include <Arduino.h>
 #include <AikoEvents.h>
 
 using namespace Aiko;

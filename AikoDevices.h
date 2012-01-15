@@ -1,9 +1,7 @@
 #ifndef AikoDevices_h
 #define AikoDevices_h
 
-#ifndef Wiring_h
-#include "wiring.h"
-#endif
+#include "Arduino.h"
 
 using namespace std;
 

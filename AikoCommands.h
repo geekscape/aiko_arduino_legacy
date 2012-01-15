@@ -1,9 +1,7 @@
 #ifndef AikoCommands_h
 #define AikoCommands_h
 
-#ifndef Wiring_h
-#include "wiring.h"
-#endif
+#include "Arduino.h"
 
 #include "AikoSExpression.h"
 
