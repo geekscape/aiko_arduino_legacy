@@ -64,7 +64,7 @@ Download
 The Aiko Arduino framework is a library that requires the Arduino IDE or
 compiler tool chain.
 
-- [Download Aiko Arduino framework](https://github.com/geekscape/aiko_arduino/archives/master)
+- [Download Aiko Arduino framework](git://github.com/nihaopaul/aiko_arduino.git)
 
 <a name="feedback" />
 Feedback and issues
@@ -81,7 +81,7 @@ Change into your Arduino libraries folder and use git to clone the project.
 On a Mac this looks like:
 
     cd /Applications/Arduino.app/libraries
-    git clone git@github.com:nihaopaul/aiko_arduino.git
+    git clone git://github.com/nihaopaul/aiko_arduino.git
 
 On Linux, this will directory will be wherever you install your Arduino
 software.
@@ -89,7 +89,7 @@ software.
 Alternatively you can download a tarball or ZIP archive from the Aiko
 repository by clicking the "download" link at:
 
-    http://github.com/geekscape/aiko_arduino/tree/master
+    https://github.com/nihaopaul/aiko_arduino/zipball/master
 
 Note: Since Arduino IDE 0017, you can create a "libraries/" directory and
 "git clone" the "aiko_arduino" repository in that directory.
