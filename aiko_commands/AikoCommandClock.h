@@ -1,5 +1,7 @@
-#ifndef AikoDeviceClock_h
-#define AikoDeviceClock_h
+#ifndef AikoCommandClock_h
+#define AikoCommandClock_h
+
+extern unsigned long secondCounter;
 
 extern byte second;
 extern byte minute;

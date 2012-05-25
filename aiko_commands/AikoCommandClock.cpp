@@ -1,8 +1,12 @@
+unsigned long secondCounter = 0;
+
 byte second = 0;
 byte minute = 0;
 byte hour   = 0;
 
 void clockHandler(void) {
+  secondCounter ++;
+
   if ((++ second) == 60) {
     second = 0;
     if ((++ minute) == 60) {

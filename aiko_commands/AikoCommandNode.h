@@ -1,5 +1,5 @@
-#ifndef AikoNode_h
-#define AikoNode_h
+#ifndef AikoCommandNode_h
+#define AikoCommandNode_h
  
 #ifndef DEFAULT_NODE_NAME
 #define DEFAULT_NODE_NAME "aiko_node"

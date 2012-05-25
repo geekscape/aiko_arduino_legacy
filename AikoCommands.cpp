@@ -1,5 +1,3 @@
-#include "Arduino.h"
-
 #include "AikoCommands.h"
 
 namespace Aiko {
@@ -10,3 +8,5 @@ namespace Aiko {
 #include "aiko_commands/AikoCommandNode.cpp"
   }
 }
+
+#include "aiko_commands/FreeRAM.cpp"
