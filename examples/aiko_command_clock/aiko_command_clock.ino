@@ -1,3 +1,4 @@
+#include <OneWire.h>
 #include <AikoCommands.h>
 #include <AikoEvents.h>
 
@@ -6,6 +7,7 @@ using namespace Command;
 
 void setup() {
   Serial.begin(38400);
+
   Events.addHandler(clockHandler,  1000);
   Events.addHandler(outputHandler, 1000);
 }
@@ -15,9 +17,19 @@ void loop() {
 }
 
 void outputHandler(void) {
-  Serial.print((int) hour);
+  if (second > 20) resetClockCommand();
+
+  outputNumber(hour);
   Serial.print(":");
-  Serial.print((int) minute);
+  outputNumber(minute);
   Serial.print(":");
-  Serial.println((int) second);
+  outputNumber(second);
+  Serial.println();
+}
+
+void outputNumber(
+  byte number) {
+
+  if (number < 10) Serial.print("0");
+  Serial.print((int) number);
 }

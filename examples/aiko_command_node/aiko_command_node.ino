@@ -1,3 +1,4 @@
+#include <OneWire.h>
 #include <AikoCommands.h>
 #include <AikoEvents.h>
 
@@ -6,6 +7,7 @@ using namespace Command;
 
 void setup() {
   Serial.begin(38400);
+
   Events.addHandler(nodeHandler, 1000);
 }
 

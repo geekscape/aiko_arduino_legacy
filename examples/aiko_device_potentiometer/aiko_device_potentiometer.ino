@@ -1,3 +1,4 @@
+#include <OneWire.h>
 #include <AikoDevices.h>
 #include <AikoEvents.h>
 
@@ -6,6 +7,7 @@ using namespace Device;
 
 void setup() {
   Serial.begin(38400);
+
   Events.addHandler(potentiometerHandler,  100);
   Events.addHandler(outputHandler,        1000);
 }

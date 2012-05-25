@@ -27,15 +27,18 @@
  * state.
  */
 
+#include <OneWire.h>
 #include <AikoEvents.h>
+
 using namespace Aiko;
 
 int firstLedPin  = 13;
 int secondLedPin = 12;
 
 void setup() {
-  pinMode(firstLedPin, OUTPUT);
+  pinMode(firstLedPin,  OUTPUT);
   pinMode(secondLedPin, OUTPUT);
+
   Events.addHandler(blinkFirstLed, 1000);  // Every 1000ms
   Events.addHandler(blinkSecondLed, 700);  // Every 700ms
 }
@@ -45,9 +48,9 @@ void loop() {
 }
 
 void blinkFirstLed() {
-  digitalWrite(firstLedPin, !digitalRead(firstLedPin));
+  digitalWrite(firstLedPin, ! digitalRead(firstLedPin));
 }
 
 void blinkSecondLed() {
-  digitalWrite(secondLedPin, !digitalRead(secondLedPin));
+  digitalWrite(secondLedPin, ! digitalRead(secondLedPin));
 }

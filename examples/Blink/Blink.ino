@@ -12,22 +12,27 @@
  * the execution of other code in the sketch.
  */
 
+#include <OneWire.h>
 #include <AikoEvents.h>
+
 using namespace Aiko;
 
 int ledPin = 13;
 
-void setup() {
+void setup(void) {
   pinMode(ledPin, OUTPUT);
+
   Events.addHandler(blink, 1000);  // Every 1000ms
 }
 
-void loop() {
+void loop(void) {
   Events.loop();
 }
 
-void blink() {
+void blink(void) {
   static boolean on = HIGH;
+
   digitalWrite(ledPin, on);
-  on = !on;
+
+  on = ! on;
 }
