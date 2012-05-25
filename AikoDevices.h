@@ -5,12 +5,12 @@
 
 using namespace std;
 
-#define ENABLE_AIKO_DEVICE_BLINK
-#define ENABLE_AIKO_DEVICE_BUTTON
-#define ENABLE_AIKO_DEVICE_POTENTIOMETER
-#define ENABLE_AIKO_DEVICE_TEMPERATUREDS1820
+#define EnableAikoDeviceBlink
+#define EnableAikoDeviceButton
+#define EnableAikoDevicePotentialmeter
+#define EnableAikoDeviceTemperatureDS1820
 
-#ifdef ENABLE_AIKO_DEVICE_TEMPERATUREDS1820
+#ifdef EnableAikoDeviceTemperatureDS1820
 #include "../OneWire/OneWire.h"
 #endif
 

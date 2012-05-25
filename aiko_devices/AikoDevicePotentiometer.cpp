@@ -6,7 +6,7 @@
  *   - Send communications message.
  */
 
-#ifdef ENABLE_AIKO_DEVICE_POTENTIOMETER
+#ifdef EnableAikoDevicePotentiometer
 int potentiometerValue = 0;
 #endif
 

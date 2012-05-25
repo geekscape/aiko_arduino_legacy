@@ -1,6 +1,6 @@
 #include <AikoDevices.h>
 
-#ifdef ENABLE_AIKO_DEVICE_TEMPERATUREDS1820
+#ifdef EnableAikoDeviceTemperatureDS1820
 OneWire oneWire(PIN_ONE_WIRE);  // Maxim DS18B20 temperature sensor
 #endif
 

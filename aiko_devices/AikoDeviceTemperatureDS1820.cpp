@@ -1,4 +1,4 @@
-#ifdef ENABLE_AIKO_DEVICE_TEMPERATUREDS1820
+#ifdef EnableAikoDeviceTemperatureDS1820
 static const byte ONE_WIRE_COMMAND_READ_SCRATCHPAD  = 0xBE;
 static const byte ONE_WIRE_COMMAND_START_CONVERSION = 0x44;
 static const byte ONE_WIRE_COMMAND_MATCH_ROM        = 0x55;

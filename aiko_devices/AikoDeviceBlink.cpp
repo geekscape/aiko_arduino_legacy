@@ -1,4 +1,4 @@
-#ifdef ENABLE_AIKO_DEVICE_BLINK
+#ifdef EnableAikoDeviceBlink
 byte blinkInitialized = false;
 byte blinkStatus      = LOW;
 #endif

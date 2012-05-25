@@ -10,7 +10,7 @@
 
 // #include "../../libraries/PString/PString.h"
 
-#ifdef ENABLE_AIKO_DEVICE_BUTTON
+#ifdef EnableAikoDeviceButton
 int     buttonValue = 0;
 char    buttonBuffer[5];
 // PString buttonState(buttonBuffer, sizeof(buttonBuffer));
