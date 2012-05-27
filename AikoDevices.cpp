@@ -8,6 +8,7 @@ namespace Aiko {
   namespace Device {
 #include "aiko_devices/AikoDeviceBlink.cpp"
 #include "aiko_devices/AikoDeviceButton.cpp"
+#include "aiko_devices/AikoDeviceLCD4096.cpp"
 #include "aiko_devices/AikoDevicePotentiometer.cpp"
 #include "aiko_devices/AikoDeviceTemperatureDS1820.cpp"
   }
