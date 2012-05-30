@@ -10,8 +10,8 @@ static const byte ONE_WIRE_DEVICE_18S20 = 0x10;
 byte temperatureDS1820Initialized = false;
 byte temperatureDS1820Ready       = false;
 
-int temperatureDS1820Whole    = 0;
-int temperatureDS1820Fraction = 0;
+byte temperatureDS1820Whole    = 0;
+byte temperatureDS1820Fraction = 0;
 
 byte address[8];
 #endif

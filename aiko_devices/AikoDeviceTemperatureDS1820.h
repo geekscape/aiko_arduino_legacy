@@ -6,8 +6,8 @@
 
 extern byte temperatureDS1820Ready;
 
-extern int temperatureDS1820Whole;
-extern int temperatureDS1820Fraction;
+extern byte temperatureDS1820Whole;
+extern byte temperatureDS1820Fraction;
 
 void temperatureDS1820Handler(void);
 
