@@ -10,8 +10,7 @@ static const byte ONE_WIRE_DEVICE_18S20 = 0x10;
 byte temperatureDS1820Initialized = false;
 byte temperatureDS1820Ready       = false;
 
-byte temperatureDS1820Whole    = 0;
-byte temperatureDS1820Fraction = 0;
+int temperatureDS1820Value = 0;  // fixed-point with 2 decimal places
 
 byte address[8];
 #endif
@@ -61,11 +60,10 @@ void temperatureDS1820Handler(void) {  // total time: 19 or 33 milliseconds
     int signBit     = temperature & 0x8000;
     if (signBit) temperature = (temperature ^ 0xffff) + 1;  // 2's complement
 
-    int tc_100 = (6 * temperature) + temperature / 4; // multiply by 100 * 0.0625
+    temperatureDS1820Value = (6 * temperature) + temperature / 4;
+                                                     // multiply by 100 * 0.0625
 
-    temperatureDS1820Whole    = tc_100 / 100;
-    temperatureDS1820Fraction = tc_100 % 100;
-    if (signBit) temperatureDS1820Whole = - temperatureDS1820Whole;
+    if (signBit) temperatureDS1820Value = - temperatureDS1820Value;
 
     temperatureDS1820Ready = true;
   }

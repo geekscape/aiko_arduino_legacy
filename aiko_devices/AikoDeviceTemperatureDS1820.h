@@ -6,8 +6,7 @@
 
 extern byte temperatureDS1820Ready;
 
-extern byte temperatureDS1820Whole;
-extern byte temperatureDS1820Fraction;
+extern int temperatureDS1820Value;  // fixed-point with 2 decimal places
 
 void temperatureDS1820Handler(void);
 
