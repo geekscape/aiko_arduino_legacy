@@ -9,4 +9,4 @@ namespace Aiko {
   }
 }
 
-#include "aiko_commands/FreeRAM.cpp"
+#include "aiko_commands/FreeRam.cpp"

@@ -16,6 +16,6 @@ namespace Aiko {
   }
 }
 
-#include "aiko_commands/FreeRAM.h"
+#include "aiko_commands/FreeRam.h"
 
 #endif
