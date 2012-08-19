@@ -79,8 +79,8 @@ Installation
 Change into your Arduino libraries folder and use git to clone the project.
 
 On a Mac this looks like:
-
-    cd /Applications/Arduino.app/libraries
+    mkdir ~/Documents/Arduino/libraries
+    cd ~/Documents/Arduino/libraries
     git clone git://github.com/nihaopaul/aiko_arduino.git
 
 On Linux, this will directory will be wherever you install your Arduino
@@ -99,7 +99,7 @@ Upgrading
 ---------
 To upgrade to the latest version:
 
-    cd /Applications/Arduino.app/libraries/aiko_arduino
+    cd ~/Documents/Arduino/libraries/aiko_arduino
     git pull
     make clean
 
